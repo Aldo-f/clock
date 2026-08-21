@@ -1,0 +1,172 @@
+import { ClockItem } from '../types';
+
+export const PRESET_CLOCKS: ClockItem[] = [
+  {
+    id: 'clock-rotating-disc',
+    name: 'Roterende Schijfklok',
+    description: 'Bij deze unieke klok draaien de concentrische schijven voor uren, minuten en seconden onder een vaste indicator door.',
+    category: 'Mechanisch & Uniek',
+    type: 'rotating_disc',
+    isBuiltIn: true,
+    likes: 184,
+    config: {
+      style: 'cyberpunk',
+      bgColor: '#0f172a',
+      accentColor: '#38bdf8',
+      secondaryColor: '#f43f5e',
+      textColor: '#f8fafc',
+      fontFamily: 'monospace',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'none',
+      discStyle: 'neon_rings',
+      handStyle: 'needle',
+      soundType: 'soft_tick',
+      customText: 'ROTATING DISCS'
+    }
+  },
+  {
+    id: 'clock-binary',
+    name: 'Binaire Gecodeerde Klok',
+    description: 'Geef de tijd weer in binaire code (BCD of 24-uurs). Ontcijfer de lichtgevende LED-kolommen voor uren, minuten en seconden.',
+    category: 'Digital & Tech',
+    type: 'binary',
+    isBuiltIn: true,
+    likes: 156,
+    config: {
+      style: 'neon',
+      bgColor: '#050505',
+      accentColor: '#10b981',
+      secondaryColor: '#06b6d4',
+      textColor: '#ecfdf5',
+      fontFamily: 'monospace',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'matrix',
+      discStyle: 'clean',
+      handStyle: 'needle',
+      soundType: 'digital_beep',
+      customText: 'BINARY CODE 0101'
+    }
+  },
+  {
+    id: 'clock-marble-run',
+    name: 'Knikkerbaanklok',
+    description: 'Een kinetische fysica-klok waarbij rollende stalen knikkers per minuut, 5 minuten en uur het verloop van de tijd visualiseren.',
+    category: 'Mechanisch & Uniek',
+    type: 'marble_run',
+    isBuiltIn: true,
+    likes: 312,
+    config: {
+      style: 'steampunk',
+      bgColor: '#18181b',
+      accentColor: '#f59e0b',
+      secondaryColor: '#d97706',
+      textColor: '#fef3c7',
+      fontFamily: 'sans-serif',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'steam',
+      discStyle: 'brass_gears',
+      handStyle: 'ornate_brass',
+      soundType: 'gear_click',
+      customText: 'ROLLING BALL CLOCK'
+    }
+  },
+  {
+    id: 'clock-color-palette',
+    name: 'Kleurenpalet / Spectrum Klok',
+    description: 'De tijd wordt omgezet in een continue vloeiende kleurverandering (HSL/RGB palette). Elk moment heeft een unieke visuele kleursfeer.',
+    category: 'Kunst & Sfeer',
+    type: 'color_palette',
+    isBuiltIn: true,
+    likes: 228,
+    config: {
+      style: 'fluid',
+      bgColor: '#000000',
+      accentColor: '#a855f7',
+      secondaryColor: '#ec4899',
+      textColor: '#ffffff',
+      fontFamily: 'sans-serif',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'fireflies',
+      discStyle: 'clean',
+      handStyle: 'needle',
+      soundType: 'water_drop',
+      customText: 'COLOR CHRONO'
+    }
+  },
+  {
+    id: 'clock-word-dutch',
+    name: 'Nederlandse Woordklok',
+    description: 'Spell de tijd in het Nederlands op een typografisch letterraster. "Het is vijf over twaalf", rustgevend en stijlvol.',
+    category: 'Typografisch',
+    type: 'word_dutch',
+    isBuiltIn: true,
+    likes: 195,
+    config: {
+      style: 'minimal',
+      bgColor: '#09090b',
+      accentColor: '#e11d48',
+      secondaryColor: '#52525b',
+      textColor: '#fafafa',
+      fontFamily: 'sans-serif',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'none',
+      discStyle: 'clean',
+      handStyle: 'needle',
+      soundType: 'soft_tick',
+      customText: 'HET IS TIJD'
+    }
+  },
+  {
+    id: 'clock-nixie',
+    name: 'Vintage Nixie Buis Klok',
+    description: 'Warme neon-oranje cijfers in glazen vacuümbuizen met authentieke kathode-gloeiing en vintage atmosfeer.',
+    category: 'Retro & Vintage',
+    type: 'nixie_tube',
+    isBuiltIn: true,
+    likes: 267,
+    config: {
+      style: 'retro_nixie',
+      bgColor: '#0b0a0a',
+      accentColor: '#ff6b00',
+      secondaryColor: '#ea580c',
+      textColor: '#ffedd5',
+      fontFamily: 'monospace',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'stars',
+      discStyle: 'clean',
+      handStyle: 'needle',
+      soundType: 'soft_tick',
+      customText: 'IN-14 NIXIE'
+    }
+  },
+  {
+    id: 'clock-fibonacci',
+    name: 'Fibonacci Spiraalklok',
+    description: 'Een wiskundige puzzelklok gebaseerd op de Fibonacci-reeks (1,1,2,3,5). Rood = Uur, Groen = Minuut, Blauw = Beide.',
+    category: 'Wiskundig',
+    type: 'fibonacci',
+    isBuiltIn: true,
+    likes: 140,
+    config: {
+      style: 'art_deco',
+      bgColor: '#111827',
+      accentColor: '#ef4444',
+      secondaryColor: '#22c55e',
+      textColor: '#3b82f6',
+      fontFamily: 'monospace',
+      showSeconds: false,
+      glowEffect: true,
+      particleEffect: 'none',
+      discStyle: 'clean',
+      handStyle: 'needle',
+      soundType: 'none',
+      customText: 'FIBONACCI 1-1-2-3-5'
+    }
+  }
+];

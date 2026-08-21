@@ -1,0 +1,6 @@
+{
+  "name": "KlokkenStudio",
+  "description": "Een interactieve verzameling unieke digitale klokken, knikkerbaanklok, binaire klok, roterende schijfklok, kleurenpaletklok, dashboard en AI-customizer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
