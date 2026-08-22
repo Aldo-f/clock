@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { getZonedDate } from '../../utils/timeUtils';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   config: ClockConfig;
@@ -20,6 +21,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
   timeOverride,
   isFullSize = false
 }) => {
+  const { t } = useLanguage();
   const [internalTime, setInternalTime] = useState(() => getZonedDate(new Date(), timeZone || config.timeZone));
   const [paletteMode, setPaletteMode] = useState<'gradient' | 'swatches' | 'hexcode'>('gradient');
 
@@ -67,7 +69,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
       {/* Mode Switcher */}
       <div className="flex items-center justify-between border-b border-white/20 pb-2 z-10">
         <span className="text-xs font-bold uppercase tracking-wider backdrop-blur-md bg-black/30 px-2.5 py-1 rounded-lg border border-white/10">
-          🎨 Kleurenpaletklok
+          🎨 {t('colorPaletteTitle')}
         </span>
         <div className="flex space-x-1 bg-black/40 backdrop-blur-md p-1 rounded-lg border border-white/10 text-xs">
           <button
@@ -76,7 +78,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               paletteMode === 'gradient' ? 'bg-white text-black font-bold' : 'text-white/70 hover:text-white'
             }`}
           >
-            Verloop
+            {t('colorGradient')}
           </button>
           <button
             onClick={() => setPaletteMode('swatches')}
@@ -84,7 +86,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               paletteMode === 'swatches' ? 'bg-white text-black font-bold' : 'text-white/70 hover:text-white'
             }`}
           >
-            Stalen
+            {t('colorSwatches')}
           </button>
           <button
             onClick={() => setPaletteMode('hexcode')}
@@ -92,7 +94,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               paletteMode === 'hexcode' ? 'bg-white text-black font-bold' : 'text-white/70 hover:text-white'
             }`}
           >
-            HEX
+            {t('colorHex')}
           </button>
         </div>
       </div>
@@ -107,7 +109,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               style={{ backgroundColor: hourColor }}
             >
               <span className="text-2xl font-black text-white drop-shadow-md">{hours.toString().padStart(2, '0')}</span>
-              <span className="text-[10px] uppercase font-bold text-white/80">Uur hue {hourHue}°</span>
+              <span className="text-[10px] uppercase font-bold text-white/80">{t('colorHourHue')} {hourHue}°</span>
             </div>
             {/* Minute Swatch */}
             <div
@@ -115,7 +117,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               style={{ backgroundColor: minColor }}
             >
               <span className="text-2xl font-black text-white drop-shadow-md">{minutes.toString().padStart(2, '0')}</span>
-              <span className="text-[10px] uppercase font-bold text-white/80">Min hue {minHue}°</span>
+              <span className="text-[10px] uppercase font-bold text-white/80">{t('colorMinHue')} {minHue}°</span>
             </div>
             {/* Second Swatch */}
             <div
@@ -123,7 +125,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               style={{ backgroundColor: secColor }}
             >
               <span className="text-2xl font-black text-white drop-shadow-md">{seconds.toString().padStart(2, '0')}</span>
-              <span className="text-[10px] uppercase font-bold text-white/80">Sec hue {secHue}°</span>
+              <span className="text-[10px] uppercase font-bold text-white/80">{t('colorSecHue')} {secHue}°</span>
             </div>
           </div>
         ) : paletteMode === 'hexcode' ? (
@@ -131,7 +133,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
             className="p-6 rounded-2xl border-2 border-white/30 backdrop-blur-xl shadow-2xl flex flex-col items-center space-y-2 transition-all duration-1000"
             style={{ backgroundColor: hexTime }}
           >
-            <div className="text-xs uppercase tracking-widest font-bold text-white/80">Kleurcode van de tijd</div>
+            <div className="text-xs uppercase tracking-widest font-bold text-white/80">{t('colorCodeOfTime')}</div>
             <div className="text-3xl sm:text-4xl font-mono font-extrabold text-white drop-shadow-lg tracking-wider">
               {hexTime}
             </div>
@@ -147,7 +149,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               {config.showSeconds && <span className="text-2xl font-normal opacity-90">:{seconds.toString().padStart(2, '0')}</span>}
             </div>
             <div className="mt-2 text-xs font-mono text-white/80 tracking-wider">
-              Palet: HSL({hourHue}°, {minHue}°, {secHue}°)
+              HSL({hourHue}°, {minHue}°, {secHue}°)
             </div>
           </div>
         )}
@@ -155,9 +157,9 @@ export const ColorPaletteClock: React.FC<Props> = ({
 
       {/* Footer info */}
       <div className="z-10 flex justify-between items-center text-xs opacity-80 backdrop-blur-md bg-black/20 px-3 py-1.5 rounded-lg border border-white/10">
-        <span>Kleursfeer verandert elke seconde</span>
+        <span>{t('colorChangesEverySec')}</span>
         <span className="font-mono font-bold" style={{ color: secColor }}>
-          ● LIVE PALETTE
+          ● {t('colorLivePalette')}
         </span>
       </div>
     </div>

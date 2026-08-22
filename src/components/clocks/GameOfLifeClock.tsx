@@ -3,6 +3,7 @@ import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { getZonedDate } from '../../utils/timeUtils';
 import { Play, Pause, RotateCcw, Sparkles, Grid } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   config: ClockConfig;
@@ -104,6 +105,7 @@ export const GameOfLifeClock: React.FC<Props> = ({
   timeOverride,
   isFullSize = false
 }) => {
+  const { t } = useLanguage();
   const [grid, setGrid] = useState<number[][]>(() => createEmptyGrid());
   const [generation, setGeneration] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(true);
@@ -262,9 +264,9 @@ export const GameOfLifeClock: React.FC<Props> = ({
       <div className="mb-2 flex items-center justify-between w-full max-w-2xl px-2 text-xs font-mono text-slate-400">
         <div className="flex items-center space-x-2">
           <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-          <span className="font-bold text-sky-300">CONWAY'S GAME OF LIFE</span>
+          <span className="font-bold text-sky-300">{t('gameOfLifeTitle')}</span>
           <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">
-            GEN: {generation}
+            {t('gameOfLifeGen')}: {generation}
           </span>
         </div>
 
@@ -273,14 +275,14 @@ export const GameOfLifeClock: React.FC<Props> = ({
           <button
             onClick={() => setIsRunning(!isRunning)}
             className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all"
-            title={isRunning ? 'Pause' : 'Play'}
+            title={isRunning ? t('gameOfLifePause') : t('gameOfLifePlay')}
           >
             {isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
           </button>
           <button
             onClick={handleResetClock}
             className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all"
-            title="Reset to current time"
+            title={t('gameOfLifeReset')}
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
@@ -321,10 +323,10 @@ export const GameOfLifeClock: React.FC<Props> = ({
       <div className="mt-3 flex items-center justify-between w-full max-w-2xl px-2 text-xs font-mono text-slate-400">
         <div className="flex items-center space-x-2">
           <span className="text-white font-bold tracking-wider">{timeStr}:{pad(seconds)}</span>
-          <span className="text-[10px] text-slate-500">AUTONOMOUS CELLULAR TIME</span>
+          <span className="text-[10px] text-slate-500">{t('gameOfLifeCellularTime')}</span>
         </div>
         <span className="text-[10px] text-slate-500 hidden sm:inline">
-          CLICK ANY CELL TO INJECT ORGANIC CELLS
+          {t('gameOfLifeInject')}
         </span>
       </div>
     </div>

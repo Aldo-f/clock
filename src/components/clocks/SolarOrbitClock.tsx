@@ -3,6 +3,7 @@ import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { getZonedDate } from '../../utils/timeUtils';
 import { Sun, Moon, Sparkles, Compass, Sunrise, Sunset } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   config: ClockConfig;
@@ -21,6 +22,7 @@ export const SolarOrbitClock: React.FC<Props> = ({
   timeOverride,
   isFullSize = false
 }) => {
+  const { t } = useLanguage();
   const [date, setDate] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -78,13 +80,13 @@ export const SolarOrbitClock: React.FC<Props> = ({
   const timeString = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
   // Solar phase name
-  let phaseName = 'NIGHT / NOCTURNAL';
-  if (hours >= 5 && hours < 7) phaseName = 'DAWN & SUNRISE';
-  else if (hours >= 7 && hours < 11) phaseName = 'MORNING ASCENT';
-  else if (hours >= 11 && hours < 13) phaseName = 'SOLAR ZENITH / NOON';
-  else if (hours >= 13 && hours < 17) phaseName = 'AFTERNOON DESCENT';
-  else if (hours >= 17 && hours < 19) phaseName = 'GOLDEN HOUR & DUSK';
-  else if (hours >= 19 && hours < 22) phaseName = 'ASTRONOMICAL TWILIGHT';
+  let phaseName = t('solarPhaseNight');
+  if (hours >= 5 && hours < 7) phaseName = t('solarPhaseDawn');
+  else if (hours >= 7 && hours < 11) phaseName = t('solarPhaseMorning');
+  else if (hours >= 11 && hours < 13) phaseName = t('solarPhaseNoon');
+  else if (hours >= 13 && hours < 17) phaseName = t('solarPhaseAfternoon');
+  else if (hours >= 17 && hours < 19) phaseName = t('solarPhaseGolden');
+  else if (hours >= 19 && hours < 22) phaseName = t('solarPhaseTwilight');
 
   const accentColor = config.accentColor || '#fbbf24';
   const secondaryColor = config.secondaryColor || '#38bdf8';
@@ -149,10 +151,10 @@ export const SolarOrbitClock: React.FC<Props> = ({
             strokeDasharray="3,3"
           />
           <text x="30" y="194" fill="#64748b" fontSize="9" fontWeight="bold" letterSpacing="1">
-            EAST (SUNRISE 06:00)
+            {t('solarEast')}
           </text>
           <text x="270" y="194" fill="#64748b" fontSize="9" fontWeight="bold" letterSpacing="1">
-            WEST (SUNSET 18:00)
+            {t('solarWest')}
           </text>
 
           {/* Zenith Line (Noon / Midnight) */}

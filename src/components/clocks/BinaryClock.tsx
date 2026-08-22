@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { getZonedDate } from '../../utils/timeUtils';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   config: ClockConfig;
@@ -20,6 +21,7 @@ export const BinaryClock: React.FC<Props> = ({
   timeOverride,
   isFullSize = false
 }) => {
+  const { t } = useLanguage();
   const [internalTime, setInternalTime] = useState(() => getZonedDate(new Date(), timeZone || config.timeZone));
   const [mode, setMode] = useState<'bcd' | 'pure'>('bcd');
 
@@ -151,9 +153,9 @@ export const BinaryClock: React.FC<Props> = ({
         ) : (
           /* Pure 24h binary columns */
           <div className="flex space-x-6 bg-white/5 p-4 rounded-xl border border-white/10">
-            {renderColumn(hours, 6, 'Uren (0-23)')}
-            {renderColumn(minutes, 6, 'Minuten')}
-            {config.showSeconds && renderColumn(seconds, 6, 'Seconden')}
+            {renderColumn(hours, 6, t('binaryHoursPure'))}
+            {renderColumn(minutes, 6, t('binaryMinutes'))}
+            {config.showSeconds && renderColumn(seconds, 6, t('binarySeconds'))}
           </div>
         )}
       </div>

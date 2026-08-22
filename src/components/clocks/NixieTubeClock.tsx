@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { getZonedDate } from '../../utils/timeUtils';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   config: ClockConfig;
@@ -20,6 +21,7 @@ export const NixieTubeClock: React.FC<Props> = ({
   timeOverride,
   isFullSize = false
 }) => {
+  const { t } = useLanguage();
   const [internalTime, setInternalTime] = useState(() => getZonedDate(new Date(), timeZone || config.timeZone));
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export const NixieTubeClock: React.FC<Props> = ({
         <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-amber-600/80 border border-amber-800" />
 
         <div className="text-[10px] font-mono tracking-widest text-amber-500/80 mb-3 uppercase">
-          IN-14 GLAS VACUUM NIXIE CHRONO
+          {t('nixieGlassChrono')}
         </div>
 
         {/* Tube Glass Cylinders */}

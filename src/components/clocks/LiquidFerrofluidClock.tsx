@@ -3,6 +3,7 @@ import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { getZonedDate } from '../../utils/timeUtils';
 import { Sparkles, Magnet } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   config: ClockConfig;
@@ -114,6 +115,7 @@ export const LiquidFerrofluidClock: React.FC<Props> = ({
   timeOverride,
   isFullSize = false
 }) => {
+  const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mousePosRef = useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
   const particlesRef = useRef<Particle[]>([]);
@@ -324,11 +326,11 @@ export const LiquidFerrofluidClock: React.FC<Props> = ({
         {/* Floating Controls Overlay */}
         <div className="absolute top-3 left-4 flex items-center space-x-2 text-[11px] font-mono text-slate-400 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-800">
           <Magnet className="w-3.5 h-3.5 text-sky-400 animate-bounce" />
-          <span>MAGNETIC FERROFLUID</span>
+          <span>{t('ferroMagnetic')}</span>
         </div>
 
         <div className="absolute bottom-3 right-4 text-[10px] font-mono text-slate-500">
-          HOVER MOUSE TO INTERACT WITH FLUID FIELD
+          {t('ferroInteract')}
         </div>
       </div>
     </div>

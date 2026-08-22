@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { getZonedDate } from '../../utils/timeUtils';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   config: ClockConfig;
@@ -87,6 +88,7 @@ export const SplitFlapClock: React.FC<Props> = ({
   timeOverride,
   isFullSize = false
 }) => {
+  const { t } = useLanguage();
   const [date, setDate] = useState<Date>(new Date());
   const prevDateRef = useRef<Date>(new Date());
 
@@ -141,7 +143,7 @@ export const SplitFlapClock: React.FC<Props> = ({
       <div className="mb-4 sm:mb-6 px-4 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-800 flex items-center space-x-3 text-xs font-mono">
         <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
         <span className="font-black text-amber-400 tracking-wider">
-          {config.customText || 'SPLIT-FLAP DEPARTURES'}
+          {config.customText || t('splitFlapTitle')}
         </span>
         <span className="text-slate-500">|</span>
         <span className="text-slate-400 font-bold">{dayStr}</span>
@@ -163,7 +165,7 @@ export const SplitFlapClock: React.FC<Props> = ({
           <FlapCard
             currentVal={curH[1]}
             prevVal={prevH[1]}
-            label="HOURS"
+            label={t('splitFlapHours')}
             isFullSize={isFullSize}
             accentColor={config.accentColor}
           />
@@ -186,7 +188,7 @@ export const SplitFlapClock: React.FC<Props> = ({
           <FlapCard
             currentVal={curM[1]}
             prevVal={prevM[1]}
-            label="MINUTES"
+            label={t('splitFlapMinutes')}
             isFullSize={isFullSize}
             accentColor={config.accentColor}
           />
@@ -211,7 +213,7 @@ export const SplitFlapClock: React.FC<Props> = ({
               <FlapCard
                 currentVal={curS[1]}
                 prevVal={prevS[1]}
-                label="SEC"
+                label={t('splitFlapSeconds')}
                 isSeconds
                 isFullSize={isFullSize}
                 accentColor={config.accentColor}
@@ -225,7 +227,7 @@ export const SplitFlapClock: React.FC<Props> = ({
       <div className="mt-4 flex items-center space-x-2 text-[11px] text-slate-500 font-mono">
         <span>BOARD NO. CLK-77B</span>
         <span>•</span>
-        <span className="text-slate-400 uppercase font-semibold">MECHANICAL SOLENOID DRIVE</span>
+        <span className="text-slate-400 uppercase font-semibold">{t('splitFlapMechanical')}</span>
       </div>
     </div>
   );

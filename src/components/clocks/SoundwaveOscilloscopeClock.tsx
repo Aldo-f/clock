@@ -3,6 +3,7 @@ import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { getZonedDate } from '../../utils/timeUtils';
 import { Activity, Radio, Cpu } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
   config: ClockConfig;
@@ -21,6 +22,7 @@ export const SoundwaveOscilloscopeClock: React.FC<Props> = ({
   timeOverride,
   isFullSize = false
 }) => {
+  const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const [date, setDate] = useState<Date>(new Date());
@@ -190,7 +192,7 @@ export const SoundwaveOscilloscopeClock: React.FC<Props> = ({
           {/* Top Telemetry Overlay */}
           <div className="absolute top-3 left-4 flex items-center space-x-3 text-xs font-mono text-emerald-400 bg-black/60 px-3 py-1 rounded-lg border border-emerald-500/20 backdrop-blur-md">
             <Radio className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-            <span className="font-bold">OSCILLOSCOPE CH-1</span>
+            <span className="font-bold">{t('oscCh1')}</span>
             <span className="text-[10px] text-emerald-600">| 10ms / DIV</span>
           </div>
 
@@ -200,7 +202,7 @@ export const SoundwaveOscilloscopeClock: React.FC<Props> = ({
               {timeStr}
             </span>
             <span className="text-[9px] font-mono text-emerald-500 uppercase tracking-wider">
-              FREQ: {hours}.{minutes} kHz • HARMONIC WAVEFORM
+              {t('oscFreq')}: {hours}.{minutes} kHz • {t('oscHarmonic')}
             </span>
           </div>
 
