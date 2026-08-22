@@ -72,14 +72,14 @@ export const MarbleRunClock: React.FC<Props> = ({
             style={{ backgroundColor: config.accentColor }}
           />
           <span className="text-xs font-bold uppercase tracking-wider opacity-80">
-            Knikkerbaanklok (Rolling Ball)
+            Knikkerbaanklok (rolling ball)
           </span>
         </div>
         <button
           onClick={handleManualDrop}
           className="px-2.5 py-1 text-xs rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 transition-all active:scale-95 flex items-center space-x-1"
         >
-          <span>🔮 Rol Knikker</span>
+          <span>🔮 Rol knikker</span>
         </button>
       </div>
 
@@ -88,7 +88,7 @@ export const MarbleRunClock: React.FC<Props> = ({
         {/* Track 1: Minutes (1, 2, 3, 4) */}
         <div className="bg-black/30 p-3 rounded-xl border border-white/10 relative">
           <div className="flex justify-between items-center mb-1 text-xs font-semibold">
-            <span className="text-amber-400">Niveau 1: Minuten (+1 min/bal)</span>
+            <span className="text-amber-400">Niveau 1: minuten (+1 min/bal)</span>
             <span className="font-mono text-amber-300 font-bold">{minBallsCount} / 4 ballen</span>
           </div>
 
@@ -126,7 +126,7 @@ export const MarbleRunClock: React.FC<Props> = ({
         {/* Track 2: 5-Minutes (5, 10, 15, ..., 55) */}
         <div className="bg-black/30 p-3 rounded-xl border border-white/10">
           <div className="flex justify-between items-center mb-1 text-xs font-semibold">
-            <span className="text-sky-400">Niveau 2: 5-Minuten Blokken</span>
+            <span className="text-sky-400">Niveau 2: 5-minutenblokken</span>
             <span className="font-mono text-sky-300 font-bold">{min5BallsCount * 5} min ({min5BallsCount} / 11)</span>
           </div>
 
@@ -153,7 +153,7 @@ export const MarbleRunClock: React.FC<Props> = ({
         {/* Track 3: Hours (1 to 12) */}
         <div className="bg-black/30 p-3 rounded-xl border border-white/10">
           <div className="flex justify-between items-center mb-1 text-xs font-semibold">
-            <span className="text-rose-400">Niveau 3: Uren (1 tot 12)</span>
+            <span className="text-rose-400">Niveau 3: uren (1 tot 12)</span>
             <span className="font-mono text-rose-300 font-bold">{hours} uur ({hourBallsCount} / 12)</span>
           </div>
 

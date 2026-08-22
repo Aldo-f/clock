@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ClockConfig, ClockItem } from '../types';
 import { ClockRenderer } from './ClockRenderer';
-import { Wand2, Sparkles, Save, Share2, X, RefreshCw, Sliders, Palette, Music, Type } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
+import { Wand2, Sparkles, Save, Share2, X, RefreshCw, Sliders, Palette, Music } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
   onSavePersonal,
   onShareCommunity
 }) => {
+  const { t, language } = useLanguage();
   if (!isOpen) return null;
 
   const defaultConfig: ClockConfig = initialClock?.config || {
@@ -33,12 +35,12 @@ export const ClockCustomizerModal: React.FC<Props> = ({
     discStyle: 'neon_rings',
     handStyle: 'laser_beam',
     soundType: 'soft_tick',
-    customText: 'MIJN UNIEKE KLOK'
+    customText: 'MY CLOCK'
   };
 
-  const [clockName, setClockName] = useState<string>(initialClock?.name || 'Mijn Aangepaste Klok');
+  const [clockName, setClockName] = useState<string>(initialClock?.name || 'My custom clock');
   const [clockDesc, setClockDesc] = useState<string>(
-    initialClock?.description || 'Een uniek digitaal klokontwerp op maat gemaakt.'
+    initialClock?.description || 'A unique custom digital clock visualizer.'
   );
   const [config, setConfig] = useState<ClockConfig>(defaultConfig);
   const [aiPrompt, setAiPrompt] = useState<string>('');
@@ -46,25 +48,61 @@ export const ClockCustomizerModal: React.FC<Props> = ({
   const [activeTab, setActiveTab] = useState<'ai' | 'colors' | 'style' | 'sound'>('ai');
   const [notification, setNotification] = useState<string | null>(null);
 
-  const presetPrompts = [
-    '🌌 Een diepe kosmische ruimteklok met vallende sterren en neonblauwe accenten',
-    '🪵 Een warme houten klok met gouden roterende tandwielen en koperen leeswijzers',
-    '🌊 Een rustgevende oceaanklok met stijgende bubbels en turquoise cijfers',
-    '⚡ Een futuristische cyberpunk neon klok in paars, geel en magenta'
-  ];
+  const getLocalizedPresetPrompts = () => {
+    switch (language) {
+      case 'nl':
+        return [
+          '🌌 Een diepe kosmische ruimteklok met vallende sterren en neonblauwe accenten',
+          '🪵 Een warme houten klok met gouden roterende tandwielen en koperen leeswijzers',
+          '🌊 Een rustgevende oceaanklok met stijgende bubbels en turquoise cijfers',
+          '⚡ Een futuristische cyberpunk neon klok in paars, geel en magenta'
+        ];
+      case 'de':
+        return [
+          '🌌 Eine tiefe kosmische Raumzeituhr mit Sternschnuppen und neonblauen Akzenten',
+          '🪵 Eine warme Holzuhr mit goldenen rotierenden Zahnrädern und Kupferzeigern',
+          '🌊 Eine beruhigende Ozeanuhr mit aufsteigenden Blasen und türkisen Ziffern',
+          '⚡ Eine futuristische Cyberpunk-Neon-Uhr in Violett, Gelb und Magenta'
+        ];
+      case 'fr':
+        return [
+          '🌌 Une horloge spatiale cosmique avec étoiles filantes et accents bleu néon',
+          '🪵 Une horloge chaleureuse en bois avec engrenages dorés et aiguilles en cuivre',
+          '🌊 Une horloge océanique apaisante avec bulles montantes et chiffres turquoise',
+          '⚡ Une horloge cyberpunk futuriste au néon en violet, jaune et magenta'
+        ];
+      case 'es':
+        return [
+          '🌌 Un reloj espacial cósmico con estrellas fugaces y acentos azul neón',
+          '🪵 Un cálido reloj de madera con engranajes dorados giratorios y manecillas de cobre',
+          '🌊 Un relajante reloj oceánico con burbujas ascendentes y números turquesa',
+          '⚡ Un reloj cyberpunk futurista en púrpura, amarillo y magenta'
+        ];
+      case 'en':
+      default:
+        return [
+          '🌌 A deep cosmic space clock with shooting stars and neon blue accents',
+          '🪵 A warm wooden clock with golden rotating gears and brass hands',
+          '🌊 A soothing ocean clock with rising bubbles and turquoise numerals',
+          '⚡ A futuristic cyberpunk neon clock in purple, yellow and magenta'
+        ];
+    }
+  };
+
+  const presetPrompts = getLocalizedPresetPrompts();
 
   const handleGenerateAi = async (promptToUse?: string) => {
     const finalPrompt = promptToUse || aiPrompt;
     if (!finalPrompt.trim()) return;
 
     setIsGenerating(true);
-    setNotification('AI ontwerpt jouw unieke klok met Gemini...');
+    setNotification(t('aiGeneratingStatus'));
 
     try {
       const res = await fetch('/api/generate-clock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: finalPrompt, currentConfig: config })
+        body: JSON.stringify({ prompt: finalPrompt, currentConfig: config, language })
       });
 
       const data = await res.json();
@@ -72,17 +110,13 @@ export const ClockCustomizerModal: React.FC<Props> = ({
         setConfig(data.clockConfig);
         if (data.clockConfig.name) setClockName(data.clockConfig.name);
         if (data.clockConfig.description) setClockDesc(data.clockConfig.description);
-        
-        if (data.fallbackNotice) {
-          setNotification('✨ Uniek klokontwerp gegenereerd op basis van jouw trefwoorden!');
-        } else {
-          setNotification('✨ Nieuw klokontwerp succesvol gegenereerd met Gemini AI!');
-        }
+
+        setNotification(t('aiSuccessNotice'));
       } else {
-        setNotification('⚠️ Fout bij het genereren: ' + (data.error || 'Probeer opnieuw.'));
+        setNotification('⚠️ ' + (data.error || 'Error'));
       }
     } catch (err: any) {
-      setNotification('⚠️ Netwerkfout bij communicatie met AI.');
+      setNotification('⚠️ Error connecting with AI API.');
     } finally {
       setIsGenerating(false);
       setTimeout(() => setNotification(null), 4000);
@@ -100,7 +134,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
       config
     };
     onSavePersonal(newClockItem);
-    setNotification('✅ Opslagen in jouw persoonlijke bibliotheek!');
+    setNotification('✅ ' + t('modalSavedPersonal'));
     setTimeout(() => {
       setNotification(null);
       onClose();
@@ -112,22 +146,21 @@ export const ClockCustomizerModal: React.FC<Props> = ({
       id: 'comm-' + Date.now(),
       name: clockName,
       description: clockDesc,
-      category: 'Community Custom',
+      category: 'Community custom',
       type: 'custom_ai',
-      author: 'Mijn Account',
+      author: 'User',
       likes: 1,
       createdAt: new Date().toISOString(),
       config
     };
     onShareCommunity(newClockItem);
-    setNotification('🌐 Gedeeld in de algemene bibliotheek!');
+    setNotification('🌐 ' + t('modalSharedCommunity'));
     setTimeout(() => {
       setNotification(null);
       onClose();
     }, 1500);
   };
 
-  // Temporary Preview Clock Item
   const previewClockItem: ClockItem = {
     id: 'preview',
     name: clockName,
@@ -147,8 +180,8 @@ export const ClockCustomizerModal: React.FC<Props> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">AI Klok Customizer & Generator</h2>
-              <p className="text-xs text-slate-400">Vraag je eigen klok aan of pas een bestaand ontwerp aan</p>
+              <h2 className="text-lg font-bold text-white">{t('modalTitle')}</h2>
+              <p className="text-xs text-slate-400">{t('modalSubtitle')}</p>
             </div>
           </div>
           <button
@@ -172,7 +205,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
           <div className="lg:col-span-5 p-6 bg-slate-950/80 border-r border-slate-800 flex flex-col justify-between items-center">
             <div className="w-full text-center mb-2">
               <span className="text-[10px] uppercase font-mono tracking-widest text-sky-400 font-bold">
-                ● LIVE VOORVERTOON
+                ● {t('modalLivePreview')}
               </span>
             </div>
 
@@ -187,14 +220,14 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                 type="text"
                 value={clockName}
                 onChange={(e) => setClockName(e.target.value)}
-                placeholder="Naam van jouw klok..."
+                placeholder={t('modalClockNamePlaceholder')}
                 className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white font-semibold focus:outline-none focus:border-sky-500"
               />
               <input
                 type="text"
                 value={clockDesc}
                 onChange={(e) => setClockDesc(e.target.value)}
-                placeholder="Korte beschrijving..."
+                placeholder={t('modalClockDescPlaceholder')}
                 className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-sky-500"
               />
             </div>
@@ -213,7 +246,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                 }`}
               >
                 <Wand2 className="w-4 h-4" />
-                <span>AI Generator</span>
+                <span>{t('tabAi')}</span>
               </button>
 
               <button
@@ -225,7 +258,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                 }`}
               >
                 <Palette className="w-4 h-4" />
-                <span>Kleuren</span>
+                <span>{t('tabColors')}</span>
               </button>
 
               <button
@@ -237,7 +270,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                 }`}
               >
                 <Sliders className="w-4 h-4" />
-                <span>Stijl & Effecten</span>
+                <span>{t('tabStyle')}</span>
               </button>
 
               <button
@@ -249,7 +282,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                 }`}
               >
                 <Music className="w-4 h-4" />
-                <span>Geluid & Inscriptie</span>
+                <span>{t('tabSound')}</span>
               </button>
             </div>
 
@@ -258,14 +291,14 @@ export const ClockCustomizerModal: React.FC<Props> = ({
               {activeTab === 'ai' && (
                 <div className="space-y-4">
                   <p className="text-xs text-slate-300">
-                    Beschrijf jouw gewenste klok in het Nederlands. Gemini AI genereert automatisch de stijl, kleuren, wijzers en deeltjes-effecten!
+                    {t('modalAiDesc')}
                   </p>
 
                   <div className="space-y-2">
                     <textarea
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
-                      placeholder="Bijvoorbeeld: 'Maak een magische oceaanklok in diepblauw met stijgende bubbels en lichtgevende turquoise cijfers...'"
+                      placeholder={t('modalAiPromptPlaceholder')}
                       rows={3}
                       className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 resize-none"
                     />
@@ -278,12 +311,12 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                       {isGenerating ? (
                         <>
                           <RefreshCw className="w-4 h-4 animate-spin" />
-                          <span>AI Genereert Klok...</span>
+                          <span>{t('btnGenerating')}</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="w-4 h-4" />
-                          <span>Genereer met Gemini AI</span>
+                          <span>{t('btnGenerateAi')}</span>
                         </>
                       )}
                     </button>
@@ -292,7 +325,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                   {/* Preset Prompt Suggestions */}
                   <div className="space-y-1.5 pt-2">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      💡 Inspiratie voorbeelden:
+                      💡 {t('modalInspiration')}:
                     </label>
                     <div className="space-y-1.5">
                       {presetPrompts.map((p, idx) => (
@@ -315,7 +348,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
               {activeTab === 'colors' && (
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Achtergrondkleur</label>
+                    <label className="block font-semibold text-slate-300 mb-1">{t('colorBg')}</label>
                     <div className="flex items-center space-x-2">
                       <input
                         type="color"
@@ -333,7 +366,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Accentkleur (Primaire Wijzer)</label>
+                    <label className="block font-semibold text-slate-300 mb-1">{t('colorAccent')}</label>
                     <div className="flex items-center space-x-2">
                       <input
                         type="color"
@@ -351,7 +384,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Secundaire Kleur</label>
+                    <label className="block font-semibold text-slate-300 mb-1">{t('colorSecondary')}</label>
                     <div className="flex items-center space-x-2">
                       <input
                         type="color"
@@ -369,7 +402,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Tekst / Cijfers Kleur</label>
+                    <label className="block font-semibold text-slate-300 mb-1">{t('colorText')}</label>
                     <div className="flex items-center space-x-2">
                       <input
                         type="color"
@@ -391,47 +424,47 @@ export const ClockCustomizerModal: React.FC<Props> = ({
               {activeTab === 'style' && (
                 <div className="space-y-3 text-xs">
                   <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Deeltjes- & Achtergrond Effect</label>
+                    <label className="block font-semibold text-slate-300 mb-1">{t('styleParticleEffect')}</label>
                     <select
                       value={config.particleEffect}
                       onChange={(e) => setConfig({ ...config, particleEffect: e.target.value })}
                       className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none"
                     >
-                      <option value="none">Geen Deeltjes</option>
-                      <option value="matrix">Matrix Digital Code Stream</option>
-                      <option value="stars">Kosmische Zwevende Sterren</option>
-                      <option value="bubbles">Oceaan Bubbels</option>
-                      <option value="steam">Steampunk Stoom</option>
-                      <option value="fireflies">Vuurvliegjes</option>
-                      <option value="sparks">Elektrische Vonken</option>
+                      <option value="none">Geen / None</option>
+                      <option value="matrix">Matrix code stream</option>
+                      <option value="stars">Cosmic floating stars</option>
+                      <option value="bubbles">Ocean bubbles</option>
+                      <option value="steam">Steampunk steam</option>
+                      <option value="fireflies">Fireflies</option>
+                      <option value="sparks">Electric sparks</option>
                     </select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-semibold text-slate-300 mb-1">Schijf / Wijzerplaat Stijl</label>
+                      <label className="block font-semibold text-slate-300 mb-1">{t('styleDial')}</label>
                       <select
                         value={config.discStyle}
                         onChange={(e) => setConfig({ ...config, discStyle: e.target.value })}
                         className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none"
                       >
-                        <option value="clean">Strak & Minimalistisch</option>
-                        <option value="neon_rings">Neon Ringen</option>
-                        <option value="brass_gears">Koperen Tandwielen</option>
-                        <option value="radar">Futuristische Radar</option>
+                        <option value="clean">Minimalist</option>
+                        <option value="neon_rings">Neon rings</option>
+                        <option value="brass_gears">Brass gears</option>
+                        <option value="radar">Futuristic radar</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-300 mb-1">Lettertype</label>
+                      <label className="block font-semibold text-slate-300 mb-1">{t('styleFont')}</label>
                       <select
                         value={config.fontFamily}
                         onChange={(e) => setConfig({ ...config, fontFamily: e.target.value })}
                         className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none"
                       >
-                        <option value="monospace">Monospace (Digitaal / Tech)</option>
-                        <option value="sans-serif">Sans-Serif (Modern / Clean)</option>
-                        <option value="serif">Serif (Klassiek / Elegant)</option>
+                        <option value="monospace">Monospace (digital / tech)</option>
+                        <option value="sans-serif">Sans-serif (modern / clean)</option>
+                        <option value="serif">Serif (classic / elegant)</option>
                       </select>
                     </div>
                   </div>
@@ -444,7 +477,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                         onChange={(e) => setConfig({ ...config, glowEffect: e.target.checked })}
                         className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-sky-500 focus:ring-0"
                       />
-                      <span>Lichtgevend Neon Gloei-effect (Glow)</span>
+                      <span>{t('styleGlow')}</span>
                     </label>
 
                     <label className="flex items-center space-x-2 text-slate-200 cursor-pointer">
@@ -454,7 +487,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                         onChange={(e) => setConfig({ ...config, showSeconds: e.target.checked })}
                         className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-sky-500 focus:ring-0"
                       />
-                      <span>Toon Seconden</span>
+                      <span>{t('styleShowSeconds')}</span>
                     </label>
                   </div>
                 </div>
@@ -463,27 +496,27 @@ export const ClockCustomizerModal: React.FC<Props> = ({
               {activeTab === 'sound' && (
                 <div className="space-y-4 text-xs">
                   <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Klok Geluidstype (Web Audio)</label>
+                    <label className="block font-semibold text-slate-300 mb-1">{t('soundEffectType')}</label>
                     <select
                       value={config.soundType}
                       onChange={(e) => setConfig({ ...config, soundType: e.target.value })}
                       className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none"
                     >
-                      <option value="none">Stil (Geen geluid)</option>
-                      <option value="soft_tick">Zachte Mechanische Tik</option>
-                      <option value="digital_beep">Digitale Beep</option>
-                      <option value="gear_click">Koperen Tandwiel Klik</option>
-                      <option value="water_drop">Waterdruppel</option>
+                      <option value="none">{t('soundNone')}</option>
+                      <option value="soft_tick">{t('soundSoftTick')}</option>
+                      <option value="digital_beep">{t('soundDigitalBeep')}</option>
+                      <option value="gear_click">{t('soundGearClick')}</option>
+                      <option value="water_drop">{t('soundWaterDrop')}</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-300 mb-1">Aangepaste Inscriptie / Tekst op Klok</label>
+                    <label className="block font-semibold text-slate-300 mb-1">{t('soundCustomInscription')}</label>
                     <input
                       type="text"
                       value={config.customText || ''}
                       onChange={(e) => setConfig({ ...config, customText: e.target.value })}
-                      placeholder="Bijv. 'CHRONOS 2026' of jouw naam..."
+                      placeholder="e.g. 'CHRONOS 2026' or name..."
                       className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none font-mono"
                     />
                   </div>
@@ -498,7 +531,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                 className="w-full sm:w-1/2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 text-xs"
               >
                 <Save className="w-4 h-4" />
-                <span>Opslaan in Mijn Bibliotheek</span>
+                <span>{t('btnSavePersonal')}</span>
               </button>
 
               <button
@@ -506,7 +539,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                 className="w-full sm:w-1/2 py-2.5 px-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 text-xs"
               >
                 <Share2 className="w-4 h-4" />
-                <span>Delen in Algemene Bibliotheek</span>
+                <span>{t('btnShareCommunity')}</span>
               </button>
             </div>
           </div>

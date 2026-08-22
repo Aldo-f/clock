@@ -99,15 +99,15 @@ export const FibonacciClock: React.FC<Props> = ({
       <div className="flex items-center space-x-3 text-[11px] bg-black/40 p-2 rounded-xl border border-white/10">
         <div className="flex items-center space-x-1">
           <div className="w-3 h-3 rounded bg-red-500" />
-          <span>Rood = Uur</span>
+          <span>Rood = uur</span>
         </div>
         <div className="flex items-center space-x-1">
           <div className="w-3 h-3 rounded bg-emerald-500" />
-          <span>Groen = Min (x5)</span>
+          <span>Groen = min (×5)</span>
         </div>
         <div className="flex items-center space-x-1">
           <div className="w-3 h-3 rounded bg-blue-600" />
-          <span>Blauw = Beide</span>
+          <span>Blauw = beide</span>
         </div>
       </div>
 
@@ -166,7 +166,7 @@ export const FibonacciClock: React.FC<Props> = ({
           {config.showSeconds && <span className="text-xs font-normal opacity-70">:{seconds.toString().padStart(2, '0')}</span>}
         </div>
         <div className="text-[10px] opacity-60 mt-0.5">
-          Som: (Rood + Blauw) Uren & (Groen + Blauw)×5 Min
+          Som: (rood + blauw) uren & (groen + blauw)×5 min
         </div>
       </div>
     </div>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ClockItem } from '../types';
 import { ClockRenderer } from './ClockRenderer';
-import { TIME_ZONES, getZonedDate, formatTimeDisplay, formatDateDutch } from '../utils/timeUtils';
+import { TIME_ZONES, getZonedDate, formatTimeDisplay, formatDateLocale } from '../utils/timeUtils';
+import { useLanguage } from '../i18n/LanguageContext';
+import { LanguageSelector } from './LanguageSelector';
 import {
   Maximize2,
   Minimize2,
@@ -15,14 +17,9 @@ import {
   Moon,
   Clock,
   Globe,
-  Sliders,
   Camera,
   RotateCcw,
-  Eye,
-  EyeOff,
-  HelpCircle,
-  Play,
-  Pause
+  HelpCircle
 } from 'lucide-react';
 
 interface Props {
@@ -37,7 +34,7 @@ interface Props {
 }
 
 export const FullscreenClockView: React.FC<Props> = ({
-  clock,
+  clock: rawClock,
   allClocks,
   isOpen,
   onClose,
@@ -46,31 +43,32 @@ export const FullscreenClockView: React.FC<Props> = ({
   soundEnabled,
   onToggleSound
 }) => {
+  const { t, language, translateClock, translateCategory } = useLanguage();
+  const clock = translateClock(rawClock);
+
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState<boolean>(false);
   const [selectedTimeZone, setSelectedTimeZone] = useState<string>('local');
   const [format24h, setFormat24h] = useState<boolean>(true);
   const [soundVolume, setSoundVolume] = useState<number>(0.3);
-  const [brightness, setBrightness] = useState<number>(100); // 10% to 100%
+  const [brightness, setBrightness] = useState<number>(100);
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
-  const [scrubMinutes, setScrubMinutes] = useState<number>(720); // 0 to 1439 (12:00)
+  const [scrubMinutes, setScrubMinutes] = useState<number>(720);
   const [showControls, setShowControls] = useState<boolean>(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false);
   const [showTzPicker, setShowTzPicker] = useState<boolean>(false);
   const [showSoundMenu, setShowSoundMenu] = useState<boolean>(false);
-  const [customSoundType, setCustomSoundType] = useState<string>(clock.config.soundType || 'soft_tick');
+  const [customSoundType, setCustomSoundType] = useState<string>(rawClock.config.soundType || 'soft_tick');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  
+
   const hideControlsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Sync customSoundType when clock changes
   useEffect(() => {
-    if (clock.config.soundType) {
-      setCustomSoundType(clock.config.soundType);
+    if (rawClock.config.soundType) {
+      setCustomSoundType(rawClock.config.soundType);
     }
-  }, [clock]);
+  }, [rawClock]);
 
-  // Keep live time updated
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentDate(new Date());
@@ -78,7 +76,6 @@ export const FullscreenClockView: React.FC<Props> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Listen to browser fullscreen changes
   useEffect(() => {
     const handleFsChange = () => {
       setIsBrowserFullscreen(!!document.fullscreenElement);
@@ -87,7 +84,6 @@ export const FullscreenClockView: React.FC<Props> = ({
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
-  // Auto-hide controls after 3.5 seconds of inactivity
   const resetHideTimer = () => {
     setShowControls(true);
     if (hideControlsTimerRef.current) {
@@ -108,12 +104,10 @@ export const FullscreenClockView: React.FC<Props> = ({
     };
   }, [isOpen, showTzPicker, showSoundMenu, showShortcutsHelp, isScrubbing]);
 
-  // Keyboard navigation & controls
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input
       if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') {
         return;
       }
@@ -142,7 +136,6 @@ export const FullscreenClockView: React.FC<Props> = ({
       } else if (e.key === 'ArrowLeft') {
         goToPrevClock();
       } else if (e.key === 'd' || e.key === 'D') {
-        // Toggle night dimmer
         setBrightness((prev) => (prev <= 30 ? 100 : 25));
       } else if (e.key === 'h' || e.key === 'H') {
         setShowControls((prev) => !prev);
@@ -153,7 +146,7 @@ export const FullscreenClockView: React.FC<Props> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showShortcutsHelp, showTzPicker, showSoundMenu, allClocks, clock]);
+  }, [isOpen, showShortcutsHelp, showTzPicker, showSoundMenu, allClocks, rawClock]);
 
   if (!isOpen) return null;
 
@@ -170,12 +163,10 @@ export const FullscreenClockView: React.FC<Props> = ({
         await document.exitFullscreen();
         setIsBrowserFullscreen(false);
       }
-    } catch (e) {
-      // Fallback
-    }
+    } catch (e) {}
   };
 
-  const currentIndex = allClocks.findIndex((c) => c.id === clock.id);
+  const currentIndex = allClocks.findIndex((c) => c.id === rawClock.id);
   const goToNextClock = () => {
     const nextIdx = (currentIndex + 1) % allClocks.length;
     onSelectClock(allClocks[nextIdx]);
@@ -185,7 +176,6 @@ export const FullscreenClockView: React.FC<Props> = ({
     onSelectClock(allClocks[prevIdx]);
   };
 
-  // Compute active overridden date if scrubbing
   let timeOverride: Date | null = null;
   if (isScrubbing) {
     const base = new Date();
@@ -195,15 +185,13 @@ export const FullscreenClockView: React.FC<Props> = ({
     timeOverride = base;
   }
 
-  // Active time calculations for info bar
   const activeDate = timeOverride || currentDate;
   const zonedDate = getZonedDate(activeDate, selectedTimeZone);
   const formattedTime = formatTimeDisplay(zonedDate, format24h, true);
-  const formattedDate = formatDateDutch(zonedDate, selectedTimeZone);
+  const formattedDate = formatDateLocale(zonedDate, language, selectedTimeZone);
 
   const selectedTzObj = TIME_ZONES.find((t) => t.id === selectedTimeZone) || TIME_ZONES[0];
 
-  // Enhanced clock copy with sound config override if modified
   const currentClockWithOverrides: ClockItem = {
     ...clock,
     config: {
@@ -213,7 +201,6 @@ export const FullscreenClockView: React.FC<Props> = ({
   };
 
   const handleCaptureSnapshot = () => {
-    // Quick screenshot notification / simulated canvas snapshot
     const canvas = document.createElement('canvas');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -262,7 +249,7 @@ export const FullscreenClockView: React.FC<Props> = ({
             <button
               onClick={onClose}
               className="p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition-all active:scale-95"
-              title="Sluiten (Esc)"
+              title={`${t('close')} (Esc)`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -271,7 +258,7 @@ export const FullscreenClockView: React.FC<Props> = ({
               <div className="flex items-center space-x-2">
                 <h2 className="text-base sm:text-lg font-black text-white tracking-tight">{clock.name}</h2>
                 <span className="hidden sm:inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider bg-sky-500/20 text-sky-400 border border-sky-500/30">
-                  {clock.category}
+                  {translateCategory(clock.category)}
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-mono hidden md:block">
@@ -301,10 +288,10 @@ export const FullscreenClockView: React.FC<Props> = ({
               {showTzPicker && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute top-full left-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl p-2 shadow-2xl z-40 space-y-1 backdrop-blur-xl"
+                  className="absolute top-full left-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl p-2 shadow-2xl z-40 space-y-1 backdrop-blur-xl max-h-80 overflow-y-auto"
                 >
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Kies Tijdzone
+                    {t('dashChooseTz')}
                   </div>
                   {TIME_ZONES.map((tz) => (
                     <button
@@ -334,14 +321,17 @@ export const FullscreenClockView: React.FC<Props> = ({
             <button
               onClick={() => setFormat24h(!format24h)}
               className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-slate-300 hover:bg-slate-800/80 transition-all border border-transparent hover:border-white/10"
-              title="Schakel tussen 24-uurs en 12-uurs AM/PM indeling"
+              title="24h / 12h"
             >
-              {format24h ? '24U' : '12U AM/PM'}
+              {format24h ? '24H' : '12H AM/PM'}
             </button>
           </div>
 
-          {/* Right Action Tools */}
+          {/* Right Action Tools: Language Selector, Audio, Dimmer, Snapshot, Customizer, Fullscreen */}
           <div className="flex items-center space-x-2">
+            {/* Multilingual Selector */}
+            <LanguageSelector variant="compact" />
+
             {/* Ambient Sound Trigger */}
             <div className="relative">
               <button
@@ -355,7 +345,7 @@ export const FullscreenClockView: React.FC<Props> = ({
                     ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/20'
                     : 'bg-slate-800/80 text-slate-400 border-white/10 hover:text-white'
                 }`}
-                title="Geluid & Soundscape mixer"
+                title={t('fsAudioSettings')}
               >
                 {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
               </button>
@@ -369,7 +359,7 @@ export const FullscreenClockView: React.FC<Props> = ({
                   <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                     <span className="text-xs font-bold text-white flex items-center space-x-1.5">
                       <Volume2 className="w-4 h-4 text-amber-400" />
-                      <span>Audio & Mechaniek</span>
+                      <span>{t('fsAudioSettings')}</span>
                     </span>
                     <button
                       onClick={onToggleSound}
@@ -377,14 +367,14 @@ export const FullscreenClockView: React.FC<Props> = ({
                         soundEnabled ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
                       }`}
                     >
-                      {soundEnabled ? 'Aan' : 'Uit'}
+                      {soundEnabled ? t('active') : t('off')}
                     </button>
                   </div>
 
                   {/* Volume Slider */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs text-slate-300">
-                      <span>Volume:</span>
+                      <span>{t('fsSoundVolume')}:</span>
                       <span className="font-mono font-bold text-amber-300">{Math.round(soundVolume * 100)}%</span>
                     </div>
                     <input
@@ -400,15 +390,15 @@ export const FullscreenClockView: React.FC<Props> = ({
 
                   {/* Sound Type Selection */}
                   <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Geluidseffect</span>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('fsSoundEffect')}</span>
                     <div className="grid grid-cols-2 gap-1.5 pt-1">
                       {[
-                        { id: 'soft_tick', label: 'Zachte Tik' },
-                        { id: 'gear_click', label: 'Tandwiel Klik' },
-                        { id: 'digital_beep', label: 'Digi Blip' },
-                        { id: 'water_drop', label: 'Waterdruppel' },
-                        { id: 'space_hum', label: 'Space Hum' },
-                        { id: 'none', label: 'Stil' }
+                        { id: 'soft_tick', label: t('soundSoftTick') },
+                        { id: 'gear_click', label: t('soundGearClick') },
+                        { id: 'digital_beep', label: t('soundDigitalBeep') },
+                        { id: 'water_drop', label: t('soundWaterDrop') },
+                        { id: 'space_hum', label: t('soundSpaceHum') },
+                        { id: 'none', label: t('soundNone') }
                       ].map((snd) => (
                         <button
                           key={snd.id}
@@ -436,7 +426,7 @@ export const FullscreenClockView: React.FC<Props> = ({
                   ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
                   : 'bg-slate-800/80 text-slate-300 border-white/10 hover:text-white'
               }`}
-              title="Nacht / Bedside Dimmer (D)"
+              title={t('fsDimmer')}
             >
               {brightness < 50 ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
@@ -445,25 +435,25 @@ export const FullscreenClockView: React.FC<Props> = ({
             <button
               onClick={handleCaptureSnapshot}
               className="p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition-all active:scale-95"
-              title="Download Poster Snapshot"
+              title={t('fsSnapshot')}
             >
               <Camera className="w-5 h-5" />
             </button>
 
             {/* AI Customizer launch */}
             <button
-              onClick={() => onOpenCustomizer(clock)}
+              onClick={() => onOpenCustomizer(rawClock)}
               className="hidden sm:flex items-center space-x-1.5 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600 hover:opacity-90 text-white font-bold text-xs shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
             >
               <Sparkles className="w-4 h-4" />
-              <span>Aanpassen</span>
+              <span>{t('edit')}</span>
             </button>
 
             {/* Browser Fullscreen F11 */}
             <button
               onClick={toggleBrowserFullscreen}
               className="p-2.5 rounded-2xl bg-sky-500 hover:bg-sky-400 text-white font-bold shadow-lg shadow-sky-500/30 transition-all active:scale-95"
-              title={isBrowserFullscreen ? 'Verlaat Volledig Scherm' : 'Volledig Scherm (F11 / F)'}
+              title={isBrowserFullscreen ? t('fsExitFs') : t('fsEnterFs')}
             >
               {isBrowserFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
             </button>
@@ -475,7 +465,7 @@ export const FullscreenClockView: React.FC<Props> = ({
                 setShowShortcutsHelp(!showShortcutsHelp);
               }}
               className="p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white border border-white/10 transition-all"
-              title="Sneltoetsen (?)"
+              title={`${t('fsShortcuts')} (?)`}
             >
               <HelpCircle className="w-5 h-5" />
             </button>
@@ -494,7 +484,7 @@ export const FullscreenClockView: React.FC<Props> = ({
           className={`absolute left-4 sm:left-8 z-20 p-3 sm:p-4 rounded-3xl bg-slate-900/60 hover:bg-slate-900 text-white/70 hover:text-white border border-white/10 backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-95 ${
             showControls ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6 pointer-events-none'
           }`}
-          title="Vorige klok (←)"
+          title={`${t('fsPrevClock')} (←)`}
         >
           <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
         </button>
@@ -507,7 +497,7 @@ export const FullscreenClockView: React.FC<Props> = ({
           className={`absolute right-4 sm:right-8 z-20 p-3 sm:p-4 rounded-3xl bg-slate-900/60 hover:bg-slate-900 text-white/70 hover:text-white border border-white/10 backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-95 ${
             showControls ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-6 pointer-events-none'
           }`}
-          title="Volgende klok (→)"
+          title={`${t('fsNextClock')} (→)`}
         >
           <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
         </button>
@@ -538,7 +528,7 @@ export const FullscreenClockView: React.FC<Props> = ({
             <div className="w-full md:w-2/3 flex items-center space-x-3">
               <div className="flex items-center space-x-2 min-w-fit">
                 <Clock className="w-4 h-4 text-sky-400" />
-                <span className="text-xs font-bold text-slate-300 hidden sm:inline">Tijdmachine:</span>
+                <span className="text-xs font-bold text-slate-300 hidden sm:inline">{t('fsTimeMachine')}:</span>
               </div>
 
               <input
@@ -563,15 +553,15 @@ export const FullscreenClockView: React.FC<Props> = ({
                   <button
                     onClick={() => setIsScrubbing(false)}
                     className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold hover:bg-amber-500/30 transition-all active:scale-95"
-                    title="Herstel naar realtime klok"
+                    title={t('fsResetLive')}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Live</span>
+                    <span className="hidden sm:inline">{t('fsLive')}</span>
                   </button>
                 ) : (
                   <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    <span>LIVE</span>
+                    <span>{t('fsLive')}</span>
                   </span>
                 )}
               </div>
@@ -596,7 +586,8 @@ export const FullscreenClockView: React.FC<Props> = ({
           {/* Quick Clock Carousel Strip */}
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-700">
             {allClocks.map((c) => {
-              const isSelected = c.id === clock.id;
+              const tc = translateClock(c);
+              const isSelected = c.id === rawClock.id;
               return (
                 <button
                   key={c.id}
@@ -614,7 +605,7 @@ export const FullscreenClockView: React.FC<Props> = ({
                     className="w-2.5 h-2.5 rounded-full"
                     style={{ backgroundColor: c.config.accentColor || '#38bdf8' }}
                   />
-                  <span className="whitespace-nowrap">{c.name}</span>
+                  <span className="whitespace-nowrap">{tc.name}</span>
                 </button>
               );
             })}
@@ -638,7 +629,7 @@ export const FullscreenClockView: React.FC<Props> = ({
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white flex items-center space-x-2">
                 <HelpCircle className="w-5 h-5 text-sky-400" />
-                <span>Sneltoetsen Overzicht</span>
+                <span>{t('fsShortcutsTitle')}</span>
               </h3>
               <button
                 onClick={() => setShowShortcutsHelp(false)}
@@ -650,37 +641,37 @@ export const FullscreenClockView: React.FC<Props> = ({
 
             <div className="space-y-2.5 text-xs text-slate-300">
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <span>Volledig scherm (F11) in/uitschakelen</span>
+                <span>{t('fsShortcutsFs')}</span>
                 <kbd className="px-2.5 py-1 bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-sky-400">
                   F / F11
                 </kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <span>Geluid aan / uit</span>
+                <span>{t('fsShortcutsSound')}</span>
                 <kbd className="px-2.5 py-1 bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-sky-400">
-                  Spatiebalk
+                  Space
                 </kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <span>Volgende / Vorige klok</span>
+                <span>{t('fsShortcutsNextPrev')}</span>
                 <kbd className="px-2.5 py-1 bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-sky-400">
                   ← / →
                 </kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <span>Nachtdimmer / Bedside modus</span>
+                <span>{t('fsShortcutsDimmer')}</span>
                 <kbd className="px-2.5 py-1 bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-sky-400">
                   D
                 </kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <span>Bedieningsknoppen verbergen / tonen</span>
+                <span>{t('fsShortcutsControls')}</span>
                 <kbd className="px-2.5 py-1 bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-sky-400">
                   H
                 </kbd>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span>Sluiten & terugkeren naar overzicht</span>
+                <span>{t('fsShortcutsClose')}</span>
                 <kbd className="px-2.5 py-1 bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-sky-400">
                   Esc
                 </kbd>
@@ -691,7 +682,7 @@ export const FullscreenClockView: React.FC<Props> = ({
               onClick={() => setShowShortcutsHelp(false)}
               className="w-full py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl text-xs shadow-lg transition-all"
             >
-              Begrepen
+              {t('fsShortcutsGotIt')}
             </button>
           </div>
         </div>

@@ -6,15 +6,17 @@ export interface TimeZoneOption {
 }
 
 export const TIME_ZONES: TimeZoneOption[] = [
-  { id: 'local', label: 'Lokaal (Apparaat)', city: 'Mijn Locatie', flag: '📍' },
-  { id: 'Europe/Amsterdam', label: 'Amsterdam / Brussel', city: 'Amsterdam', flag: '🇳🇱' },
-  { id: 'Europe/London', label: 'Londen / Dublin', city: 'Londen', flag: '🇬🇧' },
-  { id: 'America/New_York', label: 'New York (Oostkust)', city: 'New York', flag: '🇺🇸' },
-  { id: 'America/Los_Angeles', label: 'Los Angeles / SF', city: 'Los Angeles', flag: '🇺🇸' },
-  { id: 'Asia/Tokyo', label: 'Tokio (JST)', city: 'Tokio', flag: '🇯🇵' },
+  { id: 'local', label: 'Lokaal / Local (Device)', city: 'Mijn Locatie / Local', flag: '📍' },
+  { id: 'Europe/Amsterdam', label: 'Amsterdam / Brussels', city: 'Amsterdam', flag: '🇳🇱' },
+  { id: 'Europe/London', label: 'London / Dublin', city: 'London', flag: '🇬🇧' },
+  { id: 'Europe/Berlin', label: 'Berlin / Frankfurt', city: 'Berlin', flag: '🇩🇪' },
+  { id: 'Europe/Paris', label: 'Paris / Madrid', city: 'Paris', flag: '🇫🇷' },
+  { id: 'America/New_York', label: 'New York (EDT/EST)', city: 'New York', flag: '🇺🇸' },
+  { id: 'America/Los_Angeles', label: 'Los Angeles / SF (PDT/PST)', city: 'Los Angeles', flag: '🇺🇸' },
+  { id: 'Asia/Tokyo', label: 'Tokyo (JST)', city: 'Tokyo', flag: '🇯🇵' },
   { id: 'Asia/Dubai', label: 'Dubai (GST)', city: 'Dubai', flag: '🇦🇪' },
   { id: 'Australia/Sydney', label: 'Sydney (AEST)', city: 'Sydney', flag: '🇦🇺' },
-  { id: 'UTC', label: 'UTC / GMT Standaard', city: 'Universeel', flag: '🌐' }
+  { id: 'UTC', label: 'UTC / GMT Universal', city: 'Universal', flag: '🌐' }
 ];
 
 export function getZonedDate(date: Date, timeZone?: string): Date {
@@ -23,9 +25,6 @@ export function getZonedDate(date: Date, timeZone?: string): Date {
   }
 
   try {
-    const invdate = new Date(date.toLocaleString('en-US', { timeZone }));
-    const diff = date.getTime() - invdate.getTime();
-    // Return adjusted date object where getHours(), getMinutes(), etc. match the requested timezone
     const targetTimeStr = date.toLocaleString('en-US', { timeZone });
     return new Date(targetTimeStr);
   } catch (e) {
@@ -49,6 +48,19 @@ export function formatTimeDisplay(date: Date, format24h: boolean = true, showSec
 }
 
 export function formatDateDutch(date: Date, timeZone?: string): string {
+  return formatDateLocale(date, 'nl', timeZone);
+}
+
+export function formatDateLocale(date: Date, lang: string = 'nl', timeZone?: string): string {
+  const localeMap: Record<string, string> = {
+    nl: 'nl-NL',
+    en: 'en-US',
+    de: 'de-DE',
+    fr: 'fr-FR',
+    es: 'es-ES'
+  };
+
+  const locale = localeMap[lang] || 'nl-NL';
   const options: Intl.DateTimeFormatOptions = {
     weekday: 'long',
     day: 'numeric',
@@ -60,8 +72,8 @@ export function formatDateDutch(date: Date, timeZone?: string): string {
   }
 
   try {
-    return new Intl.DateTimeFormat('nl-NL', options).format(date);
+    return new Intl.DateTimeFormat(locale, options).format(date);
   } catch (e) {
-    return date.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString(locale, options);
   }
 }

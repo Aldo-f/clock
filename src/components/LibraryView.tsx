@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ClockItem } from '../types';
 import { ClockRenderer } from './ClockRenderer';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   Heart,
   Sparkles,
@@ -29,28 +30,34 @@ export const LibraryView: React.FC<Props> = ({
   onDeletePersonal,
   onLikeCommunity
 }) => {
+  const { t, translateClock, translateCategory } = useLanguage();
   const [tab, setTab] = useState<'personal' | 'community'>('community');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Alle');
 
-  const categories = [
+  const rawCategories = [
     'Alle',
-    'Mechanisch & Uniek',
-    'Digital & Tech',
+    'Mechanisch & uniek',
+    'Digitaal & tech',
     'Minimalistisch',
-    'Retro & Vintage',
+    'Retro & vintage',
     'Persoonlijk',
     'Custom AI'
   ];
 
   const currentList = tab === 'personal' ? personalClocks : communityClocks;
 
-  const filteredList = currentList.filter((c) => {
+  const translatedList = currentList.map((c) => translateClock(c));
+
+  const filteredList = translatedList.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.author && c.author.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCat = selectedCategory === 'Alle' || c.category === selectedCategory;
+    const matchesCat =
+      selectedCategory === 'Alle' ||
+      c.category === selectedCategory ||
+      translateCategory(c.category) === selectedCategory;
     return matchesSearch && matchesCat;
   });
 
@@ -61,10 +68,10 @@ export const LibraryView: React.FC<Props> = ({
         <div>
           <h2 className="text-xl font-bold text-white flex items-center space-x-2">
             <BookOpen className="w-6 h-6 text-sky-400" />
-            <span>Klokken Bibliotheek</span>
+            <span>{t('libTitle')}</span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Ontdek, bewaar en bekijk de meest creatieve klokontwerpen ter wereld in volledig scherm.
+            {t('libSubtitle')}
           </p>
         </div>
 
@@ -79,7 +86,7 @@ export const LibraryView: React.FC<Props> = ({
             }`}
           >
             <Globe className="w-4 h-4" />
-            <span>Algemene Bibliotheek ({communityClocks.length})</span>
+            <span>{t('libTabCommunity')} ({communityClocks.length})</span>
           </button>
 
           <button
@@ -91,7 +98,7 @@ export const LibraryView: React.FC<Props> = ({
             }`}
           >
             <User className="w-4 h-4" />
-            <span>Mijn Bibliotheek ({personalClocks.length})</span>
+            <span>{t('libTabPersonal')} ({personalClocks.length})</span>
           </button>
         </div>
       </div>
@@ -104,26 +111,29 @@ export const LibraryView: React.FC<Props> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Zoek op naam, auteur of stijl..."
+            placeholder={t('libSearchPlaceholder')}
             className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
           />
         </div>
 
         {/* Category Pills */}
         <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                selectedCategory === cat
-                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
-                  : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          {rawCategories.map((rawCat) => {
+            const catLabel = rawCat === 'Alle' ? t('catAll') : translateCategory(rawCat);
+            return (
+              <button
+                key={rawCat}
+                onClick={() => setSelectedCategory(rawCat)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  selectedCategory === rawCat
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                {catLabel}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -131,16 +141,16 @@ export const LibraryView: React.FC<Props> = ({
       {filteredList.length === 0 ? (
         <div className="text-center py-12 bg-slate-900/40 border border-slate-800 rounded-3xl">
           <BookOpen className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-slate-300">Geen klokken gevonden in deze categorie.</p>
+          <p className="text-sm font-semibold text-slate-300">{t('libEmpty')}</p>
           <p className="text-xs text-slate-500 mt-1">
-            Probeer een andere zoekopdracht of ontwerp jouw eigen droomklok met AI!
+            {t('libEmptySub')}
           </p>
           <button
             onClick={() => onOpenCustomizer()}
             className="mt-4 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs rounded-xl shadow-lg transition-all inline-flex items-center space-x-2"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Ontwerp Nieuwe Klok</span>
+            <span>{t('libDesignNew')}</span>
           </button>
         </div>
       ) : (
@@ -156,14 +166,14 @@ export const LibraryView: React.FC<Props> = ({
 
                 {/* Category Badge */}
                 <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/10 text-[10px] font-bold text-sky-300 uppercase tracking-wider">
-                  {clock.category}
+                  {translateCategory(clock.category)}
                 </div>
 
                 {/* Quick Full Size Hover Overlay Button */}
                 <button
                   onClick={() => onOpenFullSize(clock)}
                   className="absolute top-3 right-3 p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95"
-                  title="Volledig Scherm (Full Size / F11)"
+                  title={t('viewFullscreen')}
                 >
                   <Maximize2 className="w-4 h-4" />
                 </button>
@@ -194,7 +204,7 @@ export const LibraryView: React.FC<Props> = ({
                 <div className="flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-800/80 pt-2.5">
                   <span className="flex items-center space-x-1">
                     <User className="w-3 h-3 text-slate-400" />
-                    <span>{clock.author || 'Anoniem'}</span>
+                    <span>{clock.author || t('anonymous')}</span>
                   </span>
 
                   {tab === 'personal' && (
@@ -203,7 +213,7 @@ export const LibraryView: React.FC<Props> = ({
                       className="text-rose-400 hover:text-rose-300 flex items-center space-x-1 transition-all"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Verwijderen</span>
+                      <span>{t('delete')}</span>
                     </button>
                   )}
                 </div>
@@ -215,7 +225,7 @@ export const LibraryView: React.FC<Props> = ({
                     className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition-all flex items-center justify-center space-x-1.5"
                   >
                     <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Full Size</span>
+                    <span>{t('navFullscreen')}</span>
                   </button>
 
                   <button
@@ -223,7 +233,7 @@ export const LibraryView: React.FC<Props> = ({
                     className="py-2.5 bg-sky-500/10 hover:bg-sky-500 text-sky-400 hover:text-white font-bold text-xs rounded-xl border border-sky-500/30 transition-all flex items-center justify-center space-x-1.5"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Aanpassen</span>
+                    <span>{t('edit')}</span>
                   </button>
                 </div>
               </div>

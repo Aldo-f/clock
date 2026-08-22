@@ -15,7 +15,7 @@ app.use(express.json({ limit: '10mb' }));
 let communityClocksStore: any[] = [
   {
     id: 'preset-neon-cyber',
-    name: 'Cyberpunk Neon Matrix',
+    name: 'Cyberpunk neon matrix',
     description: 'Futuristische neon klok met gepatenteerde gloeieffecten en cyber-stijl cijfers.',
     author: 'KlokkenStudio Team',
     category: 'Futuristisch',
@@ -40,7 +40,7 @@ let communityClocksStore: any[] = [
   },
   {
     id: 'preset-zen-minimal',
-    name: 'Zen Minimalist Japan',
+    name: 'Zen minimalist Japan',
     description: 'Rustgevende en elegante klok met zachte pastelverlopen en serene typografie.',
     author: 'Sora_Design',
     category: 'Minimalistisch',
@@ -65,7 +65,7 @@ let communityClocksStore: any[] = [
   },
   {
     id: 'preset-steampunk-gear',
-    name: 'Steampunk Brass Gearing',
+    name: 'Steampunk brass gearing',
     description: 'Klassieke koperen tandwielstijl met stoom-deeltjes en vintage Romeinse cijfers.',
     author: 'ClockworkMaster',
     category: 'Retro & Vintage',

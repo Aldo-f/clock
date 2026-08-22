@@ -6,6 +6,8 @@ import { ClockCustomizerModal } from './components/ClockCustomizerModal';
 import { DashboardView } from './components/DashboardView';
 import { LibraryView } from './components/LibraryView';
 import { FullscreenClockView } from './components/FullscreenClockView';
+import { LanguageSelector } from './components/LanguageSelector';
+import { useLanguage } from './i18n/LanguageContext';
 import {
   Clock,
   LayoutGrid,
@@ -14,12 +16,11 @@ import {
   Volume2,
   VolumeX,
   Zap,
-  Maximize2,
-  Compass,
-  MonitorPlay
+  Maximize2
 } from 'lucide-react';
 
 export default function App() {
+  const { t, translateClock, translateCategory } = useLanguage();
   const [activeTab, setActiveTab] = useState<'gallery' | 'dashboard' | 'library'>('gallery');
   const [personalClocks, setPersonalClocks] = useState<ClockItem[]>(() => {
     try {
@@ -108,7 +109,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased flex flex-col selection:bg-sky-500 selection:text-white">
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           {/* Logo Brand */}
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('gallery')}>
             <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
@@ -116,13 +117,13 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-lg font-extrabold tracking-tight text-white flex items-center space-x-1.5">
-                <span>KlokkenStudio</span>
+                <span>{t('appTitle')}</span>
                 <span className="text-[10px] bg-sky-500/20 border border-sky-500/40 text-sky-400 font-bold px-2 py-0.5 rounded-full uppercase">
-                  Visualizer & AI
+                  Studio & AI
                 </span>
               </h1>
               <p className="text-[11px] text-slate-400 hidden sm:block">
-                Digitale klokken, knikkerbaan & AI customizer
+                {t('appSubtitle')}
               </p>
             </div>
           </div>
@@ -138,7 +139,7 @@ export default function App() {
               }`}
             >
               <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">Alle Klokken</span>
+              <span className="hidden sm:inline">{t('navGallery')}</span>
             </button>
 
             <button
@@ -150,7 +151,7 @@ export default function App() {
               }`}
             >
               <LayoutGrid className="w-4 h-4" />
-              <span className="hidden sm:inline">Dashboard</span>
+              <span className="hidden sm:inline">{t('navDashboard')}</span>
             </button>
 
             <button
@@ -162,20 +163,23 @@ export default function App() {
               }`}
             >
               <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Bibliotheek</span>
+              <span className="hidden sm:inline">{t('navLibrary')}</span>
             </button>
           </nav>
 
-          {/* Right Action Buttons */}
+          {/* Right Action Buttons: Language Selector, Fullscreen, Sound, Customizer */}
           <div className="flex items-center space-x-2">
-            {/* Quick Fullscreen Ambient Zen trigger */}
+            {/* Language Selector Dropdown */}
+            <LanguageSelector variant="compact" />
+
+            {/* Quick Fullscreen Ambient trigger */}
             <button
               onClick={() => handleOpenFullSize(allClocksList[0])}
               className="p-2.5 rounded-xl border border-slate-800 bg-slate-900 text-sky-400 hover:bg-slate-800 hover:text-white transition-all text-xs flex items-center space-x-1.5"
-              title="Open direct in Volledig Scherm (F11)"
+              title={t('viewFullscreen')}
             >
               <Maximize2 className="w-4 h-4" />
-              <span className="hidden lg:inline font-bold">Full Size</span>
+              <span className="hidden lg:inline font-bold">{t('navFullscreen')}</span>
             </button>
 
             {/* Sound Toggle */}
@@ -186,7 +190,7 @@ export default function App() {
                   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                   : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
               }`}
-              title="Tik en mechanische geluiden in/uitschakelen"
+              title={soundEnabled ? t('soundOff') : t('soundOn')}
             >
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
@@ -197,7 +201,7 @@ export default function App() {
               className="py-2 px-3.5 bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600 hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/20 transition-all flex items-center space-x-1.5 active:scale-95"
             >
               <Sparkles className="w-4 h-4" />
-              <span className="hidden md:inline">Ontwerp je Eigen Klok</span>
+              <span className="hidden md:inline">{t('btnCustomizeAi')}</span>
             </button>
           </div>
         </div>
@@ -213,13 +217,13 @@ export default function App() {
               <div className="relative z-10 max-w-2xl space-y-3">
                 <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-bold uppercase tracking-wider">
                   <Zap className="w-3.5 h-3.5" />
-                  <span>Digitale Tijdvisualisaties</span>
+                  <span>{t('appSubtitle')}</span>
                 </div>
                 <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-                  Ontdek unieke manieren om de tijd te ervaren.
+                  {t('featuredSubtitle')}
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Van kinetische knikkerbaanklokken tot binaire LED-codes, roterende schijven, Nixie buizen en AI-gegenereerde kleurenpaletten. Bekijk elke klok op volledig scherm (F11) of stel jouw eigen droomklok samen met AI!
+                  {t('gallerySubtitle')}
                 </p>
 
                 <div className="pt-2 flex flex-wrap gap-3">
@@ -228,7 +232,7 @@ export default function App() {
                     className="py-2.5 px-5 bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center space-x-2"
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>Vraag je Eigen Klok Aan met AI</span>
+                    <span>{t('btnCustomizeAi')}</span>
                   </button>
 
                   <button
@@ -236,7 +240,7 @@ export default function App() {
                     className="py-2.5 px-5 bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold text-xs rounded-xl border border-slate-700 transition-all flex items-center space-x-2"
                   >
                     <Maximize2 className="w-4 h-4" />
-                    <span>Full Size Zen Modus (F11)</span>
+                    <span>{t('viewFullscreen')}</span>
                   </button>
 
                   <button
@@ -244,7 +248,7 @@ export default function App() {
                     className="py-2.5 px-5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl border border-slate-800 transition-all flex items-center space-x-2"
                   >
                     <LayoutGrid className="w-4 h-4" />
-                    <span>Multiklok Dashboard</span>
+                    <span>{t('navDashboard')}</span>
                   </button>
                 </div>
               </div>
@@ -254,67 +258,70 @@ export default function App() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-white">Uitgelichte Digitale Klokken</h3>
-                  <p className="text-xs text-slate-400">Bekijk hoe deze bijzondere klokken in realtime functioneren</p>
+                  <h3 className="text-lg font-bold text-white">{t('galleryTitle')}</h3>
+                  <p className="text-xs text-slate-400">{t('gallerySubtitle')}</p>
                 </div>
               </div>
 
               {/* Grid of Preset & Custom Clocks */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {allClocksList.map((clock) => (
-                  <div
-                    key={clock.id}
-                    className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between hover:border-slate-700 transition-all group"
-                  >
-                    {/* Live Clock Stage */}
-                    <div className="relative w-full aspect-square bg-slate-950 border-b border-slate-800 overflow-hidden">
-                      <ClockRenderer clock={clock} soundEnabled={soundEnabled} />
+                {allClocksList.map((rawClock) => {
+                  const clock = translateClock(rawClock);
+                  return (
+                    <div
+                      key={clock.id}
+                      className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between hover:border-slate-700 transition-all group"
+                    >
+                      {/* Live Clock Stage */}
+                      <div className="relative w-full aspect-square bg-slate-950 border-b border-slate-800 overflow-hidden">
+                        <ClockRenderer clock={clock} soundEnabled={soundEnabled} />
 
-                      {/* Category Badge */}
-                      <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/10 text-[10px] font-bold text-sky-300 uppercase tracking-wider">
-                        {clock.category}
-                      </div>
+                        {/* Category Badge */}
+                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/10 text-[10px] font-bold text-sky-300 uppercase tracking-wider">
+                          {translateCategory(clock.category)}
+                        </div>
 
-                      {/* Quick Full Size Hover Trigger */}
-                      <button
-                        onClick={() => handleOpenFullSize(clock)}
-                        className="absolute top-3 right-3 p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95"
-                        title="Volledig Scherm (Full Size / F11)"
-                      >
-                        <Maximize2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Meta & Actions */}
-                    <div className="p-5 space-y-3">
-                      <div>
-                        <h4 className="text-base font-bold text-white group-hover:text-sky-400 transition-colors">
-                          {clock.name}
-                        </h4>
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">{clock.description}</p>
-                      </div>
-
-                      {/* Action Buttons: Full Size & AI Customizer */}
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                        {/* Quick Full Size Hover Trigger */}
                         <button
                           onClick={() => handleOpenFullSize(clock)}
-                          className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold rounded-xl border border-slate-700 transition-all flex items-center justify-center space-x-1.5"
+                          className="absolute top-3 right-3 p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95"
+                          title={t('viewFullscreen')}
                         >
-                          <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
-                          <span>Full Size</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleOpenCustomizer(clock)}
-                          className="py-2.5 bg-sky-500/10 hover:bg-sky-500 text-sky-400 hover:text-white text-xs font-bold rounded-xl border border-sky-500/30 transition-all flex items-center justify-center space-x-1.5"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Aanpassen</span>
+                          <Maximize2 className="w-4 h-4" />
                         </button>
                       </div>
+
+                      {/* Meta & Actions */}
+                      <div className="p-5 space-y-3">
+                        <div>
+                          <h4 className="text-base font-bold text-white group-hover:text-sky-400 transition-colors">
+                            {clock.name}
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-1 line-clamp-2">{clock.description}</p>
+                        </div>
+
+                        {/* Action Buttons: Full Size & AI Customizer */}
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                          <button
+                            onClick={() => handleOpenFullSize(clock)}
+                            className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold rounded-xl border border-slate-700 transition-all flex items-center justify-center space-x-1.5"
+                          >
+                            <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
+                            <span>{t('navFullscreen')}</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenCustomizer(clock)}
+                            className="py-2.5 bg-sky-500/10 hover:bg-sky-500 text-sky-400 hover:text-white text-xs font-bold rounded-xl border border-sky-500/30 transition-all flex items-center justify-center space-x-1.5"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{t('edit')}</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -346,9 +353,12 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-6 px-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>© 2026 KlokkenStudio - Digitale Klok Visualizer Platform</span>
-          <span className="text-slate-600">Aangedreven door Google Gemini AI Studio</span>
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span>{t('footerRights')}</span>
+          <div className="flex items-center space-x-4">
+            <LanguageSelector variant="compact" />
+            <span className="text-slate-600">{t('poweredBy')}</span>
+          </div>
         </div>
       </footer>
 

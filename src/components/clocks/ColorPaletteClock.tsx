@@ -67,7 +67,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
       {/* Mode Switcher */}
       <div className="flex items-center justify-between border-b border-white/20 pb-2 z-10">
         <span className="text-xs font-bold uppercase tracking-wider backdrop-blur-md bg-black/30 px-2.5 py-1 rounded-lg border border-white/10">
-          🎨 Kleurenpalet Klok
+          🎨 Kleurenpaletklok
         </span>
         <div className="flex space-x-1 bg-black/40 backdrop-blur-md p-1 rounded-lg border border-white/10 text-xs">
           <button
@@ -107,7 +107,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               style={{ backgroundColor: hourColor }}
             >
               <span className="text-2xl font-black text-white drop-shadow-md">{hours.toString().padStart(2, '0')}</span>
-              <span className="text-[10px] uppercase font-bold text-white/80">Uur Hue {hourHue}°</span>
+              <span className="text-[10px] uppercase font-bold text-white/80">Uur hue {hourHue}°</span>
             </div>
             {/* Minute Swatch */}
             <div
@@ -115,7 +115,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               style={{ backgroundColor: minColor }}
             >
               <span className="text-2xl font-black text-white drop-shadow-md">{minutes.toString().padStart(2, '0')}</span>
-              <span className="text-[10px] uppercase font-bold text-white/80">Min Hue {minHue}°</span>
+              <span className="text-[10px] uppercase font-bold text-white/80">Min hue {minHue}°</span>
             </div>
             {/* Second Swatch */}
             <div
@@ -123,7 +123,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               style={{ backgroundColor: secColor }}
             >
               <span className="text-2xl font-black text-white drop-shadow-md">{seconds.toString().padStart(2, '0')}</span>
-              <span className="text-[10px] uppercase font-bold text-white/80">Sec Hue {secHue}°</span>
+              <span className="text-[10px] uppercase font-bold text-white/80">Sec hue {secHue}°</span>
             </div>
           </div>
         ) : paletteMode === 'hexcode' ? (
@@ -131,7 +131,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
             className="p-6 rounded-2xl border-2 border-white/30 backdrop-blur-xl shadow-2xl flex flex-col items-center space-y-2 transition-all duration-1000"
             style={{ backgroundColor: hexTime }}
           >
-            <div className="text-xs uppercase tracking-widest font-bold text-white/80">Kleurcode van Tijd</div>
+            <div className="text-xs uppercase tracking-widest font-bold text-white/80">Kleurcode van de tijd</div>
             <div className="text-3xl sm:text-4xl font-mono font-extrabold text-white drop-shadow-lg tracking-wider">
               {hexTime}
             </div>
@@ -147,7 +147,7 @@ export const ColorPaletteClock: React.FC<Props> = ({
               {config.showSeconds && <span className="text-2xl font-normal opacity-90">:{seconds.toString().padStart(2, '0')}</span>}
             </div>
             <div className="mt-2 text-xs font-mono text-white/80 tracking-wider">
-              Palette: HSL({hourHue}°, {minHue}°, {secHue}°)
+              Palet: HSL({hourHue}°, {minHue}°, {secHue}°)
             </div>
           </div>
         )}
