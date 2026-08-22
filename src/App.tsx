@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { ClockItem } from './types';
 import { PRESET_CLOCKS } from './data/presetClocks';
 import { ClockRenderer } from './components/ClockRenderer';
@@ -9,6 +9,7 @@ import { FullscreenClockView } from './components/FullscreenClockView';
 import { LanguageSelector } from './components/LanguageSelector';
 import { LanguageAutoDetectBanner } from './components/LanguageAutoDetectBanner';
 import { useLanguage } from './i18n/LanguageContext';
+import { parseCurrentRoute, updateBrowserUrl } from './utils/urlRouter';
 import {
   Clock,
   LayoutGrid,
@@ -17,11 +18,14 @@ import {
   Volume2,
   VolumeX,
   Zap,
-  Maximize2
+  Maximize2,
+  Share2,
+  Check,
+  Copy
 } from 'lucide-react';
 
 export default function App() {
-  const { t, translateClock, translateCategory } = useLanguage();
+  const { t, language, translateClock, translateCategory } = useLanguage();
   const [activeTab, setActiveTab] = useState<'gallery' | 'dashboard' | 'library'>('gallery');
   const [personalClocks, setPersonalClocks] = useState<ClockItem[]>(() => {
     try {
@@ -37,6 +41,34 @@ export default function App() {
   const [isCustomizerOpen, setIsCustomizerOpen] = useState<boolean>(false);
   const [selectedClockForEdit, setSelectedClockForEdit] = useState<ClockItem | null>(null);
   const [fullscreenClock, setFullscreenClock] = useState<ClockItem | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const allClocksList = [...personalClocks, ...communityClocks];
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Sync initial URL on mount and on popstate
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const route = parseCurrentRoute(allClocksList);
+      setActiveTab(route.tab);
+      if (route.fullscreenClockId) {
+        const found = allClocksList.find((c) => c.id === route.fullscreenClockId);
+        if (found) {
+          setFullscreenClock(found);
+        }
+      } else {
+        setFullscreenClock(null);
+      }
+    };
+
+    handleLocationChange();
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, [communityClocks.length, personalClocks.length]);
 
   // Fetch server community clocks on mount
   useEffect(() => {
@@ -59,14 +91,30 @@ export default function App() {
     } catch (e) {}
   }, [personalClocks]);
 
-  const allClocksList = [...personalClocks, ...communityClocks];
+  const handleTabChange = (newTab: 'gallery' | 'dashboard' | 'library') => {
+    setActiveTab(newTab);
+    setFullscreenClock(null);
+    updateBrowserUrl(newTab, null, language);
+  };
+
+  const handleOpenFullSize = (clockToView: ClockItem) => {
+    setFullscreenClock(clockToView);
+    updateBrowserUrl(activeTab, clockToView, language);
+  };
+
+  const handleCloseFullSize = () => {
+    setFullscreenClock(null);
+    updateBrowserUrl(activeTab, null, language);
+  };
 
   const handleSavePersonalClock = (newClock: ClockItem) => {
     setPersonalClocks((prev) => [newClock, ...prev]);
+    showToast(`${newClock.name} saved!`);
   };
 
   const handleShareCommunityClock = async (newClock: ClockItem) => {
     setCommunityClocks((prev) => [newClock, ...prev]);
+    showToast(`${newClock.name} published to community!`);
 
     try {
       await fetch('/api/community-clocks', {
@@ -102,17 +150,28 @@ export default function App() {
     setIsCustomizerOpen(true);
   };
 
-  const handleOpenFullSize = (clockToView: ClockItem) => {
-    setFullscreenClock(clockToView);
+  const handleCopyClockLink = (e: React.MouseEvent, clockItem: ClockItem) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/clock/${clockItem.id}?lang=${language}`;
+    navigator.clipboard.writeText(url);
+    showToast(t('linkCopied'));
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased flex flex-col selection:bg-sky-500 selection:text-white">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-sky-500/50 text-white px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center space-x-2.5 animate-in fade-in slide-in-from-bottom-5">
+          <Check className="w-4 h-4 text-sky-400" />
+          <span className="text-xs font-bold">{toastMessage}</span>
+        </div>
+      )}
+
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-8 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           {/* Logo Brand */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('gallery')}>
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => handleTabChange('gallery')}>
             <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
               <Clock className="w-6 h-6 animate-pulse" />
             </div>
@@ -129,10 +188,10 @@ export default function App() {
             </div>
           </div>
 
-          {/* Navigation Tabs */}
+          {/* Navigation Tabs with deep links */}
           <nav className="flex items-center space-x-1 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
             <button
-              onClick={() => setActiveTab('gallery')}
+              onClick={() => handleTabChange('gallery')}
               className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl transition-all ${
                 activeTab === 'gallery'
                   ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
@@ -144,7 +203,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => handleTabChange('dashboard')}
               className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl transition-all ${
                 activeTab === 'dashboard'
                   ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
@@ -156,7 +215,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('library')}
+              onClick={() => handleTabChange('library')}
               className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl transition-all ${
                 activeTab === 'library'
                   ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
@@ -245,7 +304,7 @@ export default function App() {
                   </button>
 
                   <button
-                    onClick={() => setActiveTab('dashboard')}
+                    onClick={() => handleTabChange('dashboard')}
                     className="py-2.5 px-5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl border border-slate-800 transition-all flex items-center space-x-2"
                   >
                     <LayoutGrid className="w-4 h-4" />
@@ -277,24 +336,33 @@ export default function App() {
                       <div className="relative w-full aspect-square bg-slate-950 border-b border-slate-800 overflow-hidden">
                         <ClockRenderer clock={clock} soundEnabled={soundEnabled} />
 
-                        {/* Category Badge */}
-                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/10 text-[10px] font-bold text-sky-300 uppercase tracking-wider">
-                          {translateCategory(clock.category)}
+                        {/* Quick Action Overlay (Link & Fullscreen) */}
+                        <div className="absolute top-3 right-3 flex items-center space-x-1.5 z-20">
+                          <button
+                            onClick={(e) => handleCopyClockLink(e, clock)}
+                            className="p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95"
+                            title={t('shareLink')}
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenFullSize(clock)}
+                            className="p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95"
+                            title={t('viewFullscreen')}
+                          >
+                            <Maximize2 className="w-4 h-4" />
+                          </button>
                         </div>
-
-                        {/* Quick Full Size Hover Trigger */}
-                        <button
-                          onClick={() => handleOpenFullSize(clock)}
-                          className="absolute top-3 right-3 p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95"
-                          title={t('viewFullscreen')}
-                        >
-                          <Maximize2 className="w-4 h-4" />
-                        </button>
                       </div>
 
                       {/* Meta & Actions */}
                       <div className="p-5 space-y-3">
                         <div>
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[10px] font-bold uppercase tracking-wider">
+                              {translateCategory(clock.category)}
+                            </span>
+                          </div>
                           <h4 className="text-base font-bold text-white group-hover:text-sky-400 transition-colors">
                             {clock.name}
                           </h4>
@@ -381,10 +449,13 @@ export default function App() {
           clock={fullscreenClock}
           allClocks={allClocksList}
           isOpen={!!fullscreenClock}
-          onClose={() => setFullscreenClock(null)}
-          onSelectClock={(clk) => setFullscreenClock(clk)}
+          onClose={handleCloseFullSize}
+          onSelectClock={(clk) => {
+            setFullscreenClock(clk);
+            updateBrowserUrl(activeTab, clk);
+          }}
           onOpenCustomizer={(clk) => {
-            setFullscreenClock(null);
+            handleCloseFullSize();
             handleOpenCustomizer(clk);
           }}
           soundEnabled={soundEnabled}

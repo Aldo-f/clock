@@ -164,15 +164,10 @@ export const LibraryView: React.FC<Props> = ({
               <div className="relative w-full aspect-square border-b border-slate-800 overflow-hidden bg-slate-950">
                 <ClockRenderer clock={clock} soundEnabled={false} />
 
-                {/* Category Badge */}
-                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/10 text-[10px] font-bold text-sky-300 uppercase tracking-wider">
-                  {translateCategory(clock.category)}
-                </div>
-
                 {/* Quick Full Size Hover Overlay Button */}
                 <button
                   onClick={() => onOpenFullSize(clock)}
-                  className="absolute top-3 right-3 p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95"
+                  className="absolute top-3 right-3 p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95 z-20"
                   title={t('viewFullscreen')}
                 >
                   <Maximize2 className="w-4 h-4" />
@@ -182,10 +177,10 @@ export const LibraryView: React.FC<Props> = ({
               {/* Card Meta & Actions */}
               <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <h3 className="text-base font-bold text-white group-hover:text-sky-400 transition-colors truncate">
-                      {clock.name}
-                    </h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[10px] font-bold uppercase tracking-wider">
+                      {translateCategory(clock.category)}
+                    </span>
 
                     {/* Upvote / Like Button */}
                     <button
@@ -196,6 +191,10 @@ export const LibraryView: React.FC<Props> = ({
                       <span>{clock.likes || 1}</span>
                     </button>
                   </div>
+
+                  <h3 className="text-base font-bold text-white group-hover:text-sky-400 transition-colors truncate mb-1">
+                    {clock.name}
+                  </h3>
 
                   <p className="text-xs text-slate-400 line-clamp-2">{clock.description}</p>
                 </div>

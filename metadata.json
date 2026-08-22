@@ -1,6 +1,6 @@
 {
-  "name": "KlokkenStudio",
-  "description": "Een interactieve verzameling unieke digitale klokken, knikkerbaanklok, binaire klok, roterende schijfklok, kleurenpaletklok, dashboard en AI-customizer.",
+  "name": "Clocky",
+  "description": "Interactive collection of unique digital clocks, kinetic marble clock, binary matrix, rotating disc, chromatic palette, dashboard, and AI customizer.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

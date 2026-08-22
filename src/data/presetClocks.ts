@@ -168,5 +168,125 @@ export const PRESET_CLOCKS: ClockItem[] = [
       soundType: 'none',
       customText: 'FIBONACCI 1-1-2-3-5'
     }
+  },
+  {
+    id: 'clock-solar-orbit',
+    name: 'Zonne- & Hemelbaan Klok',
+    description: 'Berekent de zonne- en maanhoogte, gouden uur, dag/nacht-overgang en astronomische schemering op een antiek hemelglobe- en astrolabium-mechanisme.',
+    category: 'Mechanisch & uniek',
+    type: 'solar_orbit',
+    isBuiltIn: true,
+    likes: 389,
+    config: {
+      style: 'celestial',
+      bgColor: '#050814',
+      accentColor: '#fbbf24',
+      secondaryColor: '#38bdf8',
+      textColor: '#f8fafc',
+      fontFamily: 'monospace',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'stars',
+      discStyle: 'concentric',
+      handStyle: 'glowing_arrow',
+      soundType: 'space_hum',
+      customText: 'SOLAR CELESTIAL ORBIT'
+    }
+  },
+  {
+    id: 'clock-split-flap',
+    name: 'Retro Split-Flap Stationsklok',
+    description: 'Authentieke mechanische valbladen-klok met 3D-kantelmechaniek, akoestische lamellenklikken en een klassiek luchthaven-vertrektijden design.',
+    category: 'Retro & vintage',
+    type: 'split_flap',
+    isBuiltIn: true,
+    likes: 425,
+    config: {
+      style: 'mechanical_amber',
+      bgColor: '#090a0f',
+      accentColor: '#f59e0b',
+      secondaryColor: '#78716c',
+      textColor: '#f8fafc',
+      fontFamily: 'monospace',
+      showSeconds: true,
+      glowEffect: false,
+      particleEffect: 'none',
+      discStyle: 'clean',
+      handStyle: 'needle',
+      soundType: 'split_flap',
+      customText: 'SPLIT-FLAP DEPARTURES'
+    }
+  },
+  {
+    id: 'clock-liquid-ferrofluid',
+    name: 'Magnetische Ferrofluid Klok',
+    description: 'Vloeibare magnetische deeltjes die door magnetische velden vloeien en organisch samenklonteren tot levende cijfers. Reageert op muisinteractie.',
+    category: 'Kunst & sfeer',
+    type: 'liquid_ferrofluid',
+    isBuiltIn: true,
+    likes: 342,
+    config: {
+      style: 'fluid',
+      bgColor: '#030712',
+      accentColor: '#38bdf8',
+      secondaryColor: '#06b6d4',
+      textColor: '#f8fafc',
+      fontFamily: 'monospace',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'bubbles',
+      discStyle: 'clean',
+      handStyle: 'needle',
+      soundType: 'water_drop',
+      customText: 'MAGNETIC FERROFLUID'
+    }
+  },
+  {
+    id: 'clock-oscilloscope',
+    name: 'Kathodestraal Oscilloscope Klok',
+    description: 'Vintage fosforgroene CRT-beeldbuis met Lissajous-harmonische resonantiegolven die pulseren volgens uren, minuten en seconden.',
+    category: 'Digitaal & tech',
+    type: 'soundwave_oscilloscope',
+    isBuiltIn: true,
+    likes: 298,
+    config: {
+      style: 'retro_terminal',
+      bgColor: '#020617',
+      accentColor: '#10b981',
+      secondaryColor: '#059669',
+      textColor: '#10b981',
+      fontFamily: 'monospace',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'matrix',
+      discStyle: 'radar',
+      handStyle: 'laser_beam',
+      soundType: 'oscilloscope_blip',
+      customText: 'OSCILLOSCOPE CRT-CH1'
+    }
+  },
+  {
+    id: 'clock-game-of-life',
+    name: 'Conway Game of Life Klok',
+    description: 'Cellulaire automaat waarin levende cellen, gliders en oscillatoren autonoom evolueren en elke minuut een nieuw cijferpatroon berekenen.',
+    category: 'Wiskundig',
+    type: 'game_of_life',
+    isBuiltIn: true,
+    likes: 315,
+    config: {
+      style: 'cyberpunk',
+      bgColor: '#050811',
+      accentColor: '#38bdf8',
+      secondaryColor: '#a855f7',
+      textColor: '#f8fafc',
+      fontFamily: 'monospace',
+      showSeconds: true,
+      glowEffect: true,
+      particleEffect: 'none',
+      discStyle: 'minimal_dots',
+      handStyle: 'dot_markers',
+      soundType: 'digital_beep',
+      customText: 'CONWAY AUTOMATON'
+    }
   }
 ];

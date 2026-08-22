@@ -6,7 +6,7 @@ export interface TimeZoneOption {
 }
 
 export const TIME_ZONES: TimeZoneOption[] = [
-  { id: 'local', label: 'Lokaal / Local (Device)', city: 'Mijn Locatie / Local', flag: '📍' },
+  { id: 'local', label: 'Local Time (Device)', city: 'Local', flag: '📍' },
   { id: 'Europe/Amsterdam', label: 'Amsterdam / Brussels', city: 'Amsterdam', flag: '🇳🇱' },
   { id: 'Europe/London', label: 'London / Dublin', city: 'London', flag: '🇬🇧' },
   { id: 'Europe/Berlin', label: 'Berlin / Frankfurt', city: 'Berlin', flag: '🇩🇪' },
@@ -16,8 +16,50 @@ export const TIME_ZONES: TimeZoneOption[] = [
   { id: 'Asia/Tokyo', label: 'Tokyo (JST)', city: 'Tokyo', flag: '🇯🇵' },
   { id: 'Asia/Dubai', label: 'Dubai (GST)', city: 'Dubai', flag: '🇦🇪' },
   { id: 'Australia/Sydney', label: 'Sydney (AEST)', city: 'Sydney', flag: '🇦🇺' },
-  { id: 'UTC', label: 'UTC / GMT Universal', city: 'Universal', flag: '🌐' }
+  { id: 'UTC', label: 'UTC / GMT Universal', city: 'UTC Universal', flag: '🌐' }
 ];
+
+export function getLocalizedTimeZones(t: (key: any, fb?: string) => string): TimeZoneOption[] {
+  return TIME_ZONES.map((tz) => {
+    if (tz.id === 'local') {
+      return {
+        ...tz,
+        city: t('tzLocal', 'Local'),
+        label: t('tzLocalDevice', 'Local Time (Device)')
+      };
+    }
+    if (tz.id === 'UTC') {
+      return {
+        ...tz,
+        city: t('tzUniversal', 'Universal (UTC)'),
+        label: t('tzUniversalDesc', 'UTC / GMT Universal')
+      };
+    }
+    return tz;
+  });
+}
+
+export function getTimeZoneCity(id: string, t?: (key: any, fb?: string) => string): string {
+  if (id === 'local') {
+    return t ? t('tzLocal', 'Local') : 'Local';
+  }
+  if (id === 'UTC') {
+    return t ? t('tzUniversal', 'UTC Universal') : 'UTC Universal';
+  }
+  const found = TIME_ZONES.find((z) => z.id === id);
+  return found ? found.city : id.split('/').pop()?.replace('_', ' ') || id;
+}
+
+export function getTimeZoneLabel(id: string, t?: (key: any, fb?: string) => string): string {
+  if (id === 'local') {
+    return t ? t('tzLocalDevice', 'Local Time (Device)') : 'Local Time (Device)';
+  }
+  if (id === 'UTC') {
+    return t ? t('tzUniversalDesc', 'UTC / GMT Universal') : 'UTC / GMT Universal';
+  }
+  const found = TIME_ZONES.find((z) => z.id === id);
+  return found ? found.label : id;
+}
 
 export function getZonedDate(date: Date, timeZone?: string): Date {
   if (!timeZone || timeZone === 'local') {

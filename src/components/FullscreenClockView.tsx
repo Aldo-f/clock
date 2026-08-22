@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ClockItem } from '../types';
+import { ClockItem, AmbientSoundType, ChimeSoundType } from '../types';
 import { ClockRenderer } from './ClockRenderer';
-import { TIME_ZONES, getZonedDate, formatTimeDisplay, formatDateLocale } from '../utils/timeUtils';
+import { getLocalizedTimeZones, getZonedDate, formatTimeDisplay, formatDateLocale } from '../utils/timeUtils';
 import { useLanguage } from '../i18n/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
+import {
+  playClockSound,
+  playChimeSound,
+  startAmbientSound,
+  stopAmbientSound,
+  speakCurrentTime
+} from '../utils/audioSynth';
 import {
   Maximize2,
   Minimize2,
@@ -19,7 +26,17 @@ import {
   Globe,
   Camera,
   RotateCcw,
-  HelpCircle
+  HelpCircle,
+  Mic,
+  Share2,
+  Shield,
+  Timer,
+  Play,
+  Pause,
+  Copy,
+  Check,
+  Music,
+  Bell
 } from 'lucide-react';
 
 interface Props {
@@ -57,24 +74,98 @@ export const FullscreenClockView: React.FC<Props> = ({
   const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false);
   const [showTzPicker, setShowTzPicker] = useState<boolean>(false);
   const [showSoundMenu, setShowSoundMenu] = useState<boolean>(false);
+  const [showShareModal, setShowShareModal] = useState<boolean>(false);
+  const [showPomodoroModal, setShowPomodoroModal] = useState<boolean>(false);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [copiedEmbed, setCopiedEmbed] = useState<boolean>(false);
+
+  // New audio & protection state
+  const [ambientSound, setAmbientSound] = useState<AmbientSoundType>(rawClock.config.ambientSound || 'none');
+  const [hourlyChime, setHourlyChime] = useState<ChimeSoundType>(rawClock.config.hourlyChime || 'none');
+  const [burnInProtection, setBurnInProtection] = useState<boolean>(!!rawClock.config.burnInProtection);
+  const [burnInOffset, setBurnInOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [customSoundType, setCustomSoundType] = useState<string>(rawClock.config.soundType || 'soft_tick');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
+  // Pomodoro Focus Timer State
+  const [pomodoroSeconds, setPomodoroSeconds] = useState<number>(25 * 60);
+  const [pomodoroRunning, setPomodoroRunning] = useState<boolean>(false);
+  const [pomodoroMode, setPomodoroMode] = useState<'work' | 'shortBreak' | 'longBreak'>('work');
+
   const hideControlsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const lastChimedHourRef = useRef<number>(-1);
 
   useEffect(() => {
-    if (rawClock.config.soundType) {
-      setCustomSoundType(rawClock.config.soundType);
-    }
+    if (rawClock.config.soundType) setCustomSoundType(rawClock.config.soundType);
+    if (rawClock.config.ambientSound) setAmbientSound(rawClock.config.ambientSound);
+    if (rawClock.config.hourlyChime) setHourlyChime(rawClock.config.hourlyChime);
   }, [rawClock]);
 
+  // Ambient sound management
+  useEffect(() => {
+    if (soundEnabled && ambientSound !== 'none') {
+      startAmbientSound(ambientSound, soundVolume);
+    } else {
+      stopAmbientSound();
+    }
+    return () => {
+      stopAmbientSound();
+    };
+  }, [soundEnabled, ambientSound, soundVolume]);
+
+  // Clock tick & Hourly chime check
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentDate(new Date());
+      const now = new Date();
+      setCurrentDate(now);
+
+      // Hourly Chime check at minute 00
+      if (soundEnabled && hourlyChime !== 'none') {
+        const curHour = now.getHours();
+        const curMin = now.getMinutes();
+        if (curMin === 0 && lastChimedHourRef.current !== curHour) {
+          lastChimedHourRef.current = curHour;
+          playChimeSound(hourlyChime, soundVolume);
+        }
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [soundEnabled, hourlyChime, soundVolume]);
+
+  // OLED Burn-in micro-pixel shift every 60s
+  useEffect(() => {
+    if (!burnInProtection) {
+      setBurnInOffset({ x: 0, y: 0 });
+      return;
+    }
+    const interval = setInterval(() => {
+      const ox = Math.floor(Math.random() * 16) - 8;
+      const oy = Math.floor(Math.random() * 16) - 8;
+      setBurnInOffset({ x: ox, y: oy });
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [burnInProtection]);
+
+  // Pomodoro countdown timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (pomodoroRunning && pomodoroSeconds > 0) {
+      interval = setInterval(() => {
+        setPomodoroSeconds((prev) => {
+          if (prev <= 1) {
+            setPomodoroRunning(false);
+            if (soundEnabled) playChimeSound('singing_bowl', 0.6);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [pomodoroRunning, pomodoroSeconds, soundEnabled]);
 
   useEffect(() => {
     const handleFsChange = () => {
@@ -90,10 +181,10 @@ export const FullscreenClockView: React.FC<Props> = ({
       clearTimeout(hideControlsTimerRef.current);
     }
     hideControlsTimerRef.current = setTimeout(() => {
-      if (!showTzPicker && !showSoundMenu && !showShortcutsHelp && !isScrubbing) {
+      if (!showTzPicker && !showSoundMenu && !showShortcutsHelp && !showShareModal && !showPomodoroModal && !isScrubbing) {
         setShowControls(false);
       }
-    }, 3500);
+    }, 4000);
   };
 
   useEffect(() => {
@@ -102,7 +193,7 @@ export const FullscreenClockView: React.FC<Props> = ({
     return () => {
       if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
     };
-  }, [isOpen, showTzPicker, showSoundMenu, showShortcutsHelp, isScrubbing]);
+  }, [isOpen, showTzPicker, showSoundMenu, showShortcutsHelp, showShareModal, showPomodoroModal, isScrubbing]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -115,13 +206,12 @@ export const FullscreenClockView: React.FC<Props> = ({
       resetHideTimer();
 
       if (e.key === 'Escape') {
-        if (showShortcutsHelp) {
-          setShowShortcutsHelp(false);
-        } else if (showTzPicker) {
-          setShowTzPicker(false);
-        } else if (showSoundMenu) {
-          setShowSoundMenu(false);
-        } else if (document.fullscreenElement) {
+        if (showShortcutsHelp) setShowShortcutsHelp(false);
+        else if (showShareModal) setShowShareModal(false);
+        else if (showPomodoroModal) setShowPomodoroModal(false);
+        else if (showTzPicker) setShowTzPicker(false);
+        else if (showSoundMenu) setShowSoundMenu(false);
+        else if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {});
         } else {
           onClose();
@@ -146,7 +236,7 @@ export const FullscreenClockView: React.FC<Props> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showShortcutsHelp, showTzPicker, showSoundMenu, allClocks, rawClock]);
+  }, [isOpen, showShortcutsHelp, showShareModal, showPomodoroModal, showTzPicker, showSoundMenu, allClocks, rawClock]);
 
   if (!isOpen) return null;
 
@@ -190,13 +280,17 @@ export const FullscreenClockView: React.FC<Props> = ({
   const formattedTime = formatTimeDisplay(zonedDate, format24h, true);
   const formattedDate = formatDateLocale(zonedDate, language, selectedTimeZone);
 
-  const selectedTzObj = TIME_ZONES.find((t) => t.id === selectedTimeZone) || TIME_ZONES[0];
+  const localizedTimeZones = getLocalizedTimeZones(t);
+  const selectedTzObj = localizedTimeZones.find((t) => t.id === selectedTimeZone) || localizedTimeZones[0];
 
   const currentClockWithOverrides: ClockItem = {
     ...clock,
     config: {
       ...clock.config,
-      soundType: customSoundType
+      soundType: customSoundType,
+      ambientSound,
+      hourlyChime,
+      burnInProtection
     }
   };
 
@@ -223,6 +317,34 @@ export const FullscreenClockView: React.FC<Props> = ({
       link.href = canvas.toDataURL('image/png');
       link.click();
     }
+  };
+
+  const handleCopyLink = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('clock', rawClock.id);
+    url.searchParams.set('tab', 'fullscreen');
+    if (selectedTimeZone !== 'local') url.searchParams.set('tz', selectedTimeZone);
+    navigator.clipboard.writeText(url.toString());
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleCopyEmbed = () => {
+    const embedUrl = `${window.location.origin}/?clock=${rawClock.id}&tab=fullscreen&embed=true`;
+    const iframeCode = `<iframe src="${embedUrl}" width="600" height="400" frameborder="0" allowfullscreen style="border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.5);"></iframe>`;
+    navigator.clipboard.writeText(iframeCode);
+    setCopiedEmbed(true);
+    setTimeout(() => setCopiedEmbed(false), 2500);
+  };
+
+  const handleSpeak = () => {
+    speakCurrentTime(activeDate, language, selectedTimeZone);
+  };
+
+  const formatPomoTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -260,6 +382,12 @@ export const FullscreenClockView: React.FC<Props> = ({
                 <span className="hidden sm:inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider bg-sky-500/20 text-sky-400 border border-sky-500/30">
                   {translateCategory(clock.category)}
                 </span>
+                {burnInProtection && (
+                  <span className="hidden md:inline-flex items-center space-x-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <Shield className="w-3 h-3" />
+                    <span>OLED SAFE</span>
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 font-mono hidden md:block">
                 {formattedDate} • <span className="text-sky-300 font-bold">{selectedTzObj.city}</span>
@@ -293,7 +421,7 @@ export const FullscreenClockView: React.FC<Props> = ({
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     {t('dashChooseTz')}
                   </div>
-                  {TIME_ZONES.map((tz) => (
+                  {localizedTimeZones.map((tz) => (
                     <button
                       key={tz.id}
                       onClick={() => {
@@ -327,18 +455,47 @@ export const FullscreenClockView: React.FC<Props> = ({
             </button>
           </div>
 
-          {/* Right Action Tools: Language Selector, Audio, Dimmer, Snapshot, Customizer, Fullscreen */}
+          {/* Right Action Tools: Language, Speak, Audio, Dimmer, Pomodoro, Share, Fullscreen */}
           <div className="flex items-center space-x-2">
             {/* Multilingual Selector */}
             <LanguageSelector variant="compact" />
 
-            {/* Ambient Sound Trigger */}
+            {/* Speak Time Button */}
+            <button
+              onClick={handleSpeak}
+              className="p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-sky-400 hover:text-sky-300 border border-white/10 transition-all active:scale-95"
+              title={t('speakTime')}
+            >
+              <Mic className="w-5 h-5" />
+            </button>
+
+            {/* Pomodoro Timer Trigger */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPomodoroModal(!showPomodoroModal);
+                setShowSoundMenu(false);
+                setShowShareModal(false);
+              }}
+              className={`p-2.5 rounded-2xl border transition-all ${
+                pomodoroRunning
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-lg shadow-rose-500/20 animate-pulse'
+                  : 'bg-slate-800/80 text-slate-300 border-white/10 hover:text-white'
+              }`}
+              title={t('pomodoro')}
+            >
+              <Timer className="w-5 h-5" />
+            </button>
+
+            {/* Ambient & Sound Menu */}
             <div className="relative">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowSoundMenu(!showSoundMenu);
                   setShowTzPicker(false);
+                  setShowShareModal(false);
+                  setShowPomodoroModal(false);
                 }}
                 className={`p-2.5 rounded-2xl border transition-all text-xs flex items-center space-x-1.5 ${
                   soundEnabled
@@ -350,20 +507,20 @@ export const FullscreenClockView: React.FC<Props> = ({
                 {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
               </button>
 
-              {/* Sound Settings Dropdown */}
+              {/* Comprehensive Audio Settings Dropdown */}
               {showSoundMenu && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute top-full right-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl p-4 shadow-2xl z-40 space-y-4 backdrop-blur-xl"
+                  className="absolute top-full right-0 mt-2 w-80 bg-slate-900 border border-slate-700 rounded-3xl p-5 shadow-2xl z-40 space-y-4 backdrop-blur-xl max-h-[80vh] overflow-y-auto"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span className="text-xs font-bold text-white flex items-center space-x-1.5">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-sm font-bold text-white flex items-center space-x-2">
                       <Volume2 className="w-4 h-4 text-amber-400" />
                       <span>{t('fsAudioSettings')}</span>
                     </span>
                     <button
                       onClick={onToggleSound}
-                      className={`text-xs px-2.5 py-1 rounded-lg font-bold transition-all ${
+                      className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all ${
                         soundEnabled ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
                       }`}
                     >
@@ -388,35 +545,103 @@ export const FullscreenClockView: React.FC<Props> = ({
                     />
                   </div>
 
-                  {/* Sound Type Selection */}
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('fsSoundEffect')}</span>
-                    <div className="grid grid-cols-2 gap-1.5 pt-1">
+                  {/* Generative Ambient Soundscapes */}
+                  <div className="space-y-2 border-t border-slate-800 pt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-sky-400 flex items-center space-x-1.5">
+                        <Music className="w-3.5 h-3.5" />
+                        <span>{t('ambientSound')}</span>
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
                       {[
-                        { id: 'soft_tick', label: t('soundSoftTick') },
-                        { id: 'gear_click', label: t('soundGearClick') },
-                        { id: 'digital_beep', label: t('soundDigitalBeep') },
-                        { id: 'water_drop', label: t('soundWaterDrop') },
-                        { id: 'space_hum', label: t('soundSpaceHum') },
-                        { id: 'none', label: t('soundNone') }
-                      ].map((snd) => (
+                        { id: 'none', label: t('soundNone') },
+                        { id: 'rain', label: t('ambientRain') },
+                        { id: 'synth432', label: t('ambientSynth') },
+                        { id: 'brown_noise', label: t('ambientBrownNoise') },
+                        { id: 'forest', label: t('ambientForest') },
+                        { id: 'cosmic_hum', label: t('ambientCosmic') }
+                      ].map((amb) => (
                         <button
-                          key={snd.id}
-                          onClick={() => setCustomSoundType(snd.id)}
-                          className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold text-left transition-all ${
-                            customSoundType === snd.id
-                              ? 'bg-amber-500 text-slate-950 font-bold'
+                          key={amb.id}
+                          onClick={() => setAmbientSound(amb.id as AmbientSoundType)}
+                          className={`px-2.5 py-1.5 rounded-xl text-xs text-left transition-all ${
+                            ambientSound === amb.id
+                              ? 'bg-sky-500 text-white font-bold shadow-md shadow-sky-500/20'
                               : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
                           }`}
                         >
-                          {snd.label}
+                          {amb.label}
                         </button>
                       ))}
                     </div>
                   </div>
+
+                  {/* Hourly Chimes */}
+                  <div className="space-y-2 border-t border-slate-800 pt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-400 flex items-center space-x-1.5">
+                        <Bell className="w-3.5 h-3.5" />
+                        <span>{t('hourlyChime')}</span>
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {[
+                        { id: 'none', label: t('soundNone') },
+                        { id: 'westminster', label: t('chimeWestminster') },
+                        { id: 'singing_bowl', label: t('chimeBowl') },
+                        { id: 'grandfather', label: t('chimeGrandfather') },
+                        { id: 'cuckoo', label: t('chimeCuckoo') }
+                      ].map((ch) => (
+                        <button
+                          key={ch.id}
+                          onClick={() => {
+                            setHourlyChime(ch.id as ChimeSoundType);
+                            if (ch.id !== 'none') playChimeSound(ch.id, soundVolume);
+                          }}
+                          className={`px-2.5 py-1.5 rounded-xl text-xs text-left transition-all ${
+                            hourlyChime === ch.id
+                              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                              : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
+                          }`}
+                        >
+                          {ch.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* OLED Burn-in Protection Toggle */}
+                  <div className="border-t border-slate-800 pt-3 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-emerald-400 flex items-center space-x-1.5">
+                        <Shield className="w-3.5 h-3.5" />
+                        <span>{t('burnInProtection')}</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500">Pixel shift micro-offset</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={burnInProtection}
+                      onChange={(e) => setBurnInProtection(e.target.checked)}
+                      className="w-4 h-4 rounded text-emerald-500 bg-slate-800 border-slate-700 accent-emerald-500 cursor-pointer"
+                    />
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* Share / Embed Trigger */}
+            <button
+              onClick={() => {
+                setShowShareModal(true);
+                setShowSoundMenu(false);
+              }}
+              className="p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition-all active:scale-95"
+              title={t('shareLink')}
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
 
             {/* Bedside Dimmer Quick Preset */}
             <button
@@ -431,7 +656,7 @@ export const FullscreenClockView: React.FC<Props> = ({
               {brightness < 50 ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
 
-            {/* Snapshot Poster / Wallpaper */}
+            {/* Snapshot Poster */}
             <button
               onClick={handleCaptureSnapshot}
               className="p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition-all active:scale-95"
@@ -457,24 +682,17 @@ export const FullscreenClockView: React.FC<Props> = ({
             >
               {isBrowserFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
             </button>
-
-            {/* Shortcuts Help */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowShortcutsHelp(!showShortcutsHelp);
-              }}
-              className="p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white border border-white/10 transition-all"
-              title={`${t('fsShortcuts')} (?)`}
-            >
-              <HelpCircle className="w-5 h-5" />
-            </button>
           </div>
         </div>
       </header>
 
-      {/* Main Full-Scale Clock Canvas */}
-      <main className="relative flex-1 w-full h-full flex items-center justify-center p-4 sm:p-12 overflow-hidden">
+      {/* Main Full-Scale Clock Canvas with OLED Micro-shift */}
+      <main
+        className="relative flex-1 w-full h-full flex items-center justify-center p-4 sm:p-12 overflow-hidden transition-transform duration-1000"
+        style={{
+          transform: `translate(${burnInOffset.x}px, ${burnInOffset.y}px)`
+        }}
+      >
         {/* Navigation Arrows for Previous / Next Clock */}
         <button
           onClick={(e) => {
@@ -613,13 +831,160 @@ export const FullscreenClockView: React.FC<Props> = ({
         </div>
       </footer>
 
+      {/* Share / Embed Modal */}
+      {showShareModal && (
+        <div
+          onClick={() => setShowShareModal(false)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                <Share2 className="w-5 h-5 text-sky-400" />
+                <span>{t('shareLink')}</span>
+              </h3>
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Direct Link */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300">{t('directUrlBadge')}</label>
+              <div className="flex items-center space-x-2">
+                <input
+                  readOnly
+                  value={`${window.location.origin}/clock/${rawClock.id}?lang=${language}`}
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-300"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 transition-all"
+                >
+                  {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedLink ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* iFrame Embed Code */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300">{t('embedCode')}</label>
+              <div className="flex items-center space-x-2">
+                <textarea
+                  readOnly
+                  rows={2}
+                  value={`<iframe src="${window.location.origin}/clock/${rawClock.id}?embed=true&lang=${language}" width="600" height="400" frameborder="0" allowfullscreen></iframe>`}
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-300 resize-none"
+                />
+                <button
+                  onClick={handleCopyEmbed}
+                  className="px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 transition-all"
+                >
+                  {copiedEmbed ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedEmbed ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pomodoro Focus Timer Modal */}
+      {showPomodoroModal && (
+        <div
+          onClick={() => setShowPomodoroModal(false)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-5 text-center"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                <Timer className="w-5 h-5 text-rose-400" />
+                <span>{t('pomodoro')}</span>
+              </h3>
+              <button
+                onClick={() => setShowPomodoroModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Presets Toggle */}
+            <div className="flex rounded-xl bg-slate-950 p-1 border border-slate-800">
+              <button
+                onClick={() => {
+                  setPomodoroMode('work');
+                  setPomodoroSeconds(25 * 60);
+                  setPomodoroRunning(false);
+                }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  pomodoroMode === 'work' ? 'bg-rose-500 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t('focusWorkSession')} (25m)
+              </button>
+              <button
+                onClick={() => {
+                  setPomodoroMode('shortBreak');
+                  setPomodoroSeconds(5 * 60);
+                  setPomodoroRunning(false);
+                }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  pomodoroMode === 'shortBreak' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t('focusShortBreak')} (5m)
+              </button>
+            </div>
+
+            {/* Big Countdown Display */}
+            <div className="py-6">
+              <div className="text-6xl font-black font-mono tracking-wider text-white drop-shadow-lg">
+                {formatPomoTime(pomodoroSeconds)}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-center space-x-3">
+              <button
+                onClick={() => setPomodoroRunning(!pomodoroRunning)}
+                className={`px-6 py-3 rounded-2xl font-bold text-sm flex items-center space-x-2 shadow-lg transition-all ${
+                  pomodoroRunning ? 'bg-amber-500 text-slate-950' : 'bg-rose-500 text-white'
+                }`}
+              >
+                {pomodoroRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                <span>{pomodoroRunning ? t('fsTimerPause') : t('fsTimerStart')}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setPomodoroRunning(false);
+                  setPomodoroSeconds(pomodoroMode === 'work' ? 25 * 60 : 5 * 60);
+                }}
+                className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"
+                title={t('fsTimerReset')}
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Keyboard Shortcuts Modal */}
       {showShortcutsHelp && (
         <div
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowShortcutsHelp(false);
-          }}
+          onClick={() => setShowShortcutsHelp(false)}
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
         >
           <div

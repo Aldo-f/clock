@@ -112,20 +112,29 @@ const CATEGORY_MAP: Record<string, keyof TranslationDictionary> = {
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [initData] = useState(() => {
     try {
-      // 1. Check Cookie
+      // 1. Priority #1: Check URL query param (?lang=en or ?l=en)
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = matchLanguageCode(urlParams.get('lang') || urlParams.get('l'));
+        if (urlLang) {
+          return { lang: urlLang, isAuto: false, showNotice: false };
+        }
+      }
+
+      // 2. Priority #2: Check Cookie
       const cookieLang = matchLanguageCode(getCookie('klokken_language') || getCookie('app_lang'));
       if (cookieLang) {
         return { lang: cookieLang, isAuto: false, showNotice: false };
       }
 
-      // 2. Check LocalStorage
+      // 3. Priority #3: Check LocalStorage
       const stored = matchLanguageCode(localStorage.getItem('klokken_language'));
       if (stored) {
         setCookie('klokken_language', stored);
         return { lang: stored, isAuto: false, showNotice: false };
       }
 
-      // 3. Auto-detect from browser setting
+      // 4. Auto-detect from browser setting
       const browserLang = detectBrowserLanguage();
       // Auto-detected on first visit: show subtle UX notice
       return { lang: browserLang, isAuto: true, showNotice: true };
@@ -139,11 +148,25 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [showAutoDetectNotice, setShowAutoDetectNotice] = useState<boolean>(initData.showNotice);
   const detectedBrowserLang = useMemo(() => detectBrowserLanguage(), []);
 
-  // Synchronize document attributes on language change
+  // Synchronize document attributes & URL on language change
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.lang = language;
     }
+  }, [language]);
+
+  // Listen to popstate for browser history navigation with ?lang= parameter
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLang = matchLanguageCode(urlParams.get('lang') || urlParams.get('l'));
+      if (urlLang && urlLang !== language) {
+        setLanguageState(urlLang);
+        setIsAutoDetected(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [language]);
 
   const setLanguage = (lang: Language) => {
@@ -155,12 +178,23 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Persist to both LocalStorage and Cookie
       localStorage.setItem('klokken_language', lang);
       setCookie('klokken_language', lang);
+
+      // Synchronize in URL query parameter without full reload
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('lang', lang);
+        window.history.replaceState(
+          { ...window.history.state, language: lang },
+          document.title,
+          url.pathname + url.search
+        );
+      }
     } catch (e) {}
   };
 
   const resetToAutoDetect = () => {
     const autoLang = detectBrowserLanguage();
-    setLanguageState(autoLang);
+    setLanguage(autoLang);
     setIsAutoDetected(true);
     setShowAutoDetectNotice(false);
 

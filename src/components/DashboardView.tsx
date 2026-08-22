@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ClockItem, DashboardSlot } from '../types';
 import { ClockRenderer } from './ClockRenderer';
-import { TIME_ZONES } from '../utils/timeUtils';
+import { TimezoneOverlapMatrix } from './TimezoneOverlapMatrix';
+import { getLocalizedTimeZones } from '../utils/timeUtils';
 import { useLanguage } from '../i18n/LanguageContext';
 import {
   Maximize2,
@@ -29,6 +30,7 @@ export const DashboardView: React.FC<Props> = ({
   onOpenFullSize
 }) => {
   const { t, translateClock } = useLanguage();
+  const localizedTimeZones = getLocalizedTimeZones(t);
   const [slots, setSlots] = useState<DashboardSlot[]>([
     { id: 'slot-1', clockId: 'clock-rotating-disc', timeZone: 'Europe/Amsterdam' },
     { id: 'slot-2', clockId: 'clock-binary', timeZone: 'America/New_York' },
@@ -234,7 +236,7 @@ export const DashboardView: React.FC<Props> = ({
                       onChange={(e) => handleTimezoneSelect(primarySlot.id, e.target.value)}
                       className="bg-slate-900 text-xs font-bold text-slate-300 border border-slate-700 rounded-xl px-2.5 py-1.5 focus:outline-none"
                     >
-                      {TIME_ZONES.map((tz) => (
+                      {localizedTimeZones.map((tz) => (
                         <option key={tz.id} value={tz.id}>
                           {tz.flag} {tz.city}
                         </option>
@@ -297,7 +299,7 @@ export const DashboardView: React.FC<Props> = ({
                         onChange={(e) => handleTimezoneSelect(slot.id, e.target.value)}
                         className="bg-slate-900 text-[11px] font-bold text-slate-300 border border-slate-700 rounded-lg px-1.5 py-1"
                       >
-                        {TIME_ZONES.map((tz) => (
+                        {localizedTimeZones.map((tz) => (
                           <option key={tz.id} value={tz.id}>
                             {tz.flag} {tz.city}
                           </option>
@@ -382,7 +384,7 @@ export const DashboardView: React.FC<Props> = ({
                       onChange={(e) => handleTimezoneSelect(slot.id, e.target.value)}
                       className="bg-slate-900 text-xs font-bold text-slate-300 border border-slate-700 rounded-xl px-2 py-1 focus:outline-none"
                     >
-                      {TIME_ZONES.map((tz) => (
+                      {localizedTimeZones.map((tz) => (
                         <option key={tz.id} value={tz.id}>
                           {tz.flag} {tz.city}
                         </option>
@@ -434,6 +436,9 @@ export const DashboardView: React.FC<Props> = ({
           })}
         </div>
       )}
+
+      {/* Global Team Timezone & Meeting Overlap Matrix */}
+      <TimezoneOverlapMatrix selectedZones={slots.map((s) => s.timeZone || 'local')} />
     </div>
   );
 };

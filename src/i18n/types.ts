@@ -279,4 +279,47 @@ export interface TranslationDictionary {
   presetNixieDesc: string;
   presetFibName: string;
   presetFibDesc: string;
+  presetSolarName: string;
+  presetSolarDesc: string;
+  presetFlapName: string;
+  presetFlapDesc: string;
+  presetLiquidName: string;
+  presetLiquidDesc: string;
+  presetOscilloscopeName: string;
+  presetOscilloscopeDesc: string;
+  presetLifeName: string;
+  presetLifeDesc: string;
+
+  // New Productivity & Sharing Features
+  shareLink: string;
+  linkCopied: string;
+  embedCode: string;
+  embedCopied: string;
+  speakTime: string;
+  ambientSound: string;
+  ambientRain: string;
+  ambientSynth: string;
+  ambientBrownNoise: string;
+  ambientForest: string;
+  ambientCosmic: string;
+  hourlyChime: string;
+  chimeWestminster: string;
+  chimeBowl: string;
+  chimeGrandfather: string;
+  chimeCuckoo: string;
+  burnInProtection: string;
+  burnInDesc: string;
+  tzOverlapTitle: string;
+  tzOverlapSubtitle: string;
+  tzWorkHours: string;
+  tzLocal: string;
+  tzLocalDevice: string;
+  tzUniversal: string;
+  tzUniversalDesc: string;
+  pomodoro: string;
+  focusTimer: string;
+  focusWorkSession: string;
+  focusShortBreak: string;
+  focusLongBreak: string;
+  directUrlBadge: string;
 }

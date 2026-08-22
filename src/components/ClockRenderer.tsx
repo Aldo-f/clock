@@ -7,6 +7,11 @@ import { ColorPaletteClock } from './clocks/ColorPaletteClock';
 import { WordClock } from './clocks/WordClock';
 import { NixieTubeClock } from './clocks/NixieTubeClock';
 import { FibonacciClock } from './clocks/FibonacciClock';
+import { SolarOrbitClock } from './clocks/SolarOrbitClock';
+import { SplitFlapClock } from './clocks/SplitFlapClock';
+import { LiquidFerrofluidClock } from './clocks/LiquidFerrofluidClock';
+import { SoundwaveOscilloscopeClock } from './clocks/SoundwaveOscilloscopeClock';
+import { GameOfLifeClock } from './clocks/GameOfLifeClock';
 import { CustomAiClock } from './clocks/CustomAiClock';
 
 interface Props {
@@ -50,8 +55,19 @@ export const ClockRenderer: React.FC<Props> = ({
       return <NixieTubeClock {...commonProps} />;
     case 'fibonacci':
       return <FibonacciClock {...commonProps} />;
+    case 'solar_orbit':
+      return <SolarOrbitClock {...commonProps} />;
+    case 'split_flap':
+      return <SplitFlapClock {...commonProps} />;
+    case 'liquid_ferrofluid':
+      return <LiquidFerrofluidClock {...commonProps} />;
+    case 'soundwave_oscilloscope':
+      return <SoundwaveOscilloscopeClock {...commonProps} />;
+    case 'game_of_life':
+      return <GameOfLifeClock {...commonProps} />;
     case 'custom_ai':
     default:
       return <CustomAiClock {...commonProps} />;
   }
 };
+
