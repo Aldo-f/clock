@@ -37,6 +37,11 @@ export interface TranslationDictionary {
   viewFullscreen: string;
   language: string;
   selectLanguage: string;
+  langAutoDetectedNotice: string;
+  langAutoFromBrowser: string;
+  langPreferenceSaved: string;
+  langChange: string;
+  langDismiss: string;
   active: string;
   off: string;
   anonymous: string;

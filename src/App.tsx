@@ -7,6 +7,7 @@ import { DashboardView } from './components/DashboardView';
 import { LibraryView } from './components/LibraryView';
 import { FullscreenClockView } from './components/FullscreenClockView';
 import { LanguageSelector } from './components/LanguageSelector';
+import { LanguageAutoDetectBanner } from './components/LanguageAutoDetectBanner';
 import { useLanguage } from './i18n/LanguageContext';
 import {
   Clock,
@@ -361,6 +362,9 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Auto-detect Language Notice Banner */}
+      <LanguageAutoDetectBanner />
 
       {/* AI Clock Customizer Modal */}
       <ClockCustomizerModal

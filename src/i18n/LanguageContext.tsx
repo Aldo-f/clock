@@ -6,6 +6,11 @@ import { ClockItem } from '../types';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
+  resetToAutoDetect: () => void;
+  isAutoDetected: boolean;
+  showAutoDetectNotice: boolean;
+  dismissAutoDetectNotice: () => void;
+  detectedBrowserLang: Language;
   t: (key: keyof TranslationDictionary, fallback?: string) => string;
   translateCategory: (cat: string) => string;
   translateClock: (clock: ClockItem) => ClockItem;
@@ -14,6 +19,63 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+// Cookie helpers with long expiry and Lax security
+function getCookie(name: string): string | null {
+  try {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
+    return match ? decodeURIComponent(match[3]) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setCookie(name: string, value: string, days = 365) {
+  try {
+    if (typeof document === 'undefined') return;
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+  } catch (e) {}
+}
+
+const SUPPORTED_CODES: Language[] = ['nl', 'en', 'de', 'fr', 'es'];
+
+function matchLanguageCode(code: string | undefined | null): Language | null {
+  if (!code) return null;
+  const clean = code.toLowerCase().trim();
+  const twoLetter = clean.slice(0, 2) as Language;
+  if (SUPPORTED_CODES.includes(twoLetter)) {
+    return twoLetter;
+  }
+  return null;
+}
+
+export function detectBrowserLanguage(): Language {
+  try {
+    if (typeof navigator !== 'undefined') {
+      const candidates: string[] = [];
+      if (Array.isArray(navigator.languages)) {
+        candidates.push(...navigator.languages);
+      }
+      if (navigator.language) {
+        candidates.push(navigator.language);
+      }
+      if ((navigator as any).userLanguage) {
+        candidates.push((navigator as any).userLanguage);
+      }
+
+      for (const cand of candidates) {
+        const matched = matchLanguageCode(cand);
+        if (matched) {
+          return matched;
+        }
+      }
+    }
+  } catch (e) {}
+
+  return 'nl';
+}
 
 const PRESET_MAPPINGS: Record<string, { nameKey: keyof TranslationDictionary; descKey: keyof TranslationDictionary; catKey: keyof TranslationDictionary }> = {
   'clock-rotating-disc': { nameKey: 'presetDiscName', descKey: 'presetDiscDesc', catKey: 'catMechanical' },
@@ -48,28 +110,72 @@ const CATEGORY_MAP: Record<string, keyof TranslationDictionary> = {
 };
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>(() => {
+  const [initData] = useState(() => {
     try {
-      const saved = localStorage.getItem('klokken_language') as Language;
-      if (saved && ['nl', 'en', 'de', 'fr', 'es'].includes(saved)) {
-        return saved;
+      // 1. Check Cookie
+      const cookieLang = matchLanguageCode(getCookie('klokken_language') || getCookie('app_lang'));
+      if (cookieLang) {
+        return { lang: cookieLang, isAuto: false, showNotice: false };
       }
-      // Detect browser language
-      const navLang = navigator.language?.slice(0, 2).toLowerCase();
-      if (navLang === 'nl') return 'nl';
-      if (navLang === 'de') return 'de';
-      if (navLang === 'fr') return 'fr';
-      if (navLang === 'es') return 'es';
-      return 'nl'; // Default to Dutch
+
+      // 2. Check LocalStorage
+      const stored = matchLanguageCode(localStorage.getItem('klokken_language'));
+      if (stored) {
+        setCookie('klokken_language', stored);
+        return { lang: stored, isAuto: false, showNotice: false };
+      }
+
+      // 3. Auto-detect from browser setting
+      const browserLang = detectBrowserLanguage();
+      // Auto-detected on first visit: show subtle UX notice
+      return { lang: browserLang, isAuto: true, showNotice: true };
     } catch (e) {
-      return 'nl';
+      return { lang: 'nl' as Language, isAuto: true, showNotice: false };
     }
   });
 
+  const [language, setLanguageState] = useState<Language>(initData.lang);
+  const [isAutoDetected, setIsAutoDetected] = useState<boolean>(initData.isAuto);
+  const [showAutoDetectNotice, setShowAutoDetectNotice] = useState<boolean>(initData.showNotice);
+  const detectedBrowserLang = useMemo(() => detectBrowserLanguage(), []);
+
+  // Synchronize document attributes on language change
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = language;
+    }
+  }, [language]);
+
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
+    setIsAutoDetected(false);
+    setShowAutoDetectNotice(false);
+
     try {
+      // Persist to both LocalStorage and Cookie
       localStorage.setItem('klokken_language', lang);
+      setCookie('klokken_language', lang);
+    } catch (e) {}
+  };
+
+  const resetToAutoDetect = () => {
+    const autoLang = detectBrowserLanguage();
+    setLanguageState(autoLang);
+    setIsAutoDetected(true);
+    setShowAutoDetectNotice(false);
+
+    try {
+      localStorage.removeItem('klokken_language');
+      setCookie('klokken_language', '', -1); // Clear cookie
+    } catch (e) {}
+  };
+
+  const dismissAutoDetectNotice = () => {
+    setShowAutoDetectNotice(false);
+    // Mark preference in cookie/localStorage to remember dismissal
+    try {
+      localStorage.setItem('klokken_language', language);
+      setCookie('klokken_language', language);
     } catch (e) {}
   };
 
@@ -130,13 +236,18 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     () => ({
       language,
       setLanguage,
+      resetToAutoDetect,
+      isAutoDetected,
+      showAutoDetectNotice,
+      dismissAutoDetectNotice,
+      detectedBrowserLang,
       t,
       translateCategory,
       translateClock,
       formatDateLocale,
       languages: SUPPORTED_LANGUAGES
     }),
-    [language]
+    [language, isAutoDetected, showAutoDetectNotice, detectedBrowserLang]
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
