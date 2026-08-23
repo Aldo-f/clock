@@ -1,0 +1,31 @@
+# Clocky – production deployment (this file is part of the Clocky repo)
+#
+# Self-contained: clone + `docker compose up -d --build`.
+# Requires the external `traefik_net` network (created by 01-core-infra)
+# and a Traefik router pointing at http://clocky:3000
+# (see 01-core-infra/templates/infra/04-network-traefik/routes.yml).
+#
+# Optional AI customizer key: create a .env next to this file with
+#   GEMINI_API_KEY=...
+# and uncomment the env_file block below.
+services:
+  clocky:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clocky:local
+    container_name: clocky
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    # env_file:
+    #   - .env
+    expose:
+      - "3000"
+    networks:
+      - traefik_net
+
+networks:
+  traefik_net:
+    external: true

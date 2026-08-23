@@ -64,7 +64,46 @@ export function parseCurrentRoute(allClocks: ClockItem[]): RouteState {
 }
 
 /**
- * Updates browser URL and document title without triggering page reloads.
+ * Translated strings used to build the browser tab title.
+ * Supplied by callers (i18n layer) so this module holds no copy.
+ */
+export interface DocumentTitleParts {
+  /** Brand/app name, e.g. "Clocky". */
+  appName: string;
+  /** Gallery/base view title (translated, see pageTitle in translations.ts). */
+  base: string;
+  /** Dashboard view title. */
+  dashboard: string;
+  /** Library view title. */
+  library: string;
+}
+
+/**
+ * Purely composes the browser tab title from the active view plus
+ * caller-supplied translated strings. All user-facing copy originates
+ * from src/i18n/translations.ts (house rule: i18n mandatory).
+ */
+export function composeDocumentTitle(
+  tab: 'gallery' | 'dashboard' | 'library',
+  fullscreenClockName: string | null,
+  parts: DocumentTitleParts
+): string {
+  if (fullscreenClockName) {
+    return `${fullscreenClockName} — ${parts.appName}`;
+  }
+  if (tab === 'dashboard') {
+    return parts.dashboard;
+  }
+  if (tab === 'library') {
+    return parts.library;
+  }
+  return parts.base;
+}
+
+/**
+ * Updates browser URL (and history entry) without triggering page reloads.
+ * The document <title> itself is kept in sync by the i18n-driven effect in
+ * App.tsx (see composeDocumentTitle).
  */
 export function updateBrowserUrl(
   tab: 'gallery' | 'dashboard' | 'library',
@@ -73,20 +112,15 @@ export function updateBrowserUrl(
   replace: boolean = false
 ) {
   let targetPath = '/';
-  let title = 'Clocky — AI & Horology Clock Studio';
 
   if (fullscreenClock) {
     targetPath = `/clock/${fullscreenClock.id}`;
-    title = `${fullscreenClock.name} — Clocky`;
   } else if (tab === 'dashboard') {
     targetPath = '/dashboard';
-    title = 'Multiklok Dashboard — Clocky';
   } else if (tab === 'library') {
     targetPath = '/library';
-    title = 'Clock Library & Community — Clocky';
   } else {
     targetPath = '/';
-    title = 'Clocky — AI & Horology Clock Studio';
   }
 
   // Maintain URL search params
@@ -106,13 +140,15 @@ export function updateBrowserUrl(
   const fullTargetUrl = queryString ? `${targetPath}?${queryString}` : targetPath;
   const currentFullUrl = window.location.pathname + (window.location.search ? window.location.search : '');
 
-  document.title = title;
+  // History state label only; the visible document <title> is owned by the
+  // i18n effect in App.tsx (composeDocumentTitle).
+  const historyTitle = document.title;
 
   if (currentFullUrl !== fullTargetUrl) {
     if (replace) {
-      window.history.replaceState({ tab, clockId: fullscreenClock?.id || null, language }, title, fullTargetUrl);
+      window.history.replaceState({ tab, clockId: fullscreenClock?.id || null, language }, historyTitle, fullTargetUrl);
     } else {
-      window.history.pushState({ tab, clockId: fullscreenClock?.id || null, language }, title, fullTargetUrl);
+      window.history.pushState({ tab, clockId: fullscreenClock?.id || null, language }, historyTitle, fullTargetUrl);
     }
   }
 }

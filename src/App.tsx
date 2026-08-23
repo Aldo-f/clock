@@ -9,7 +9,11 @@ import { FullscreenClockView } from './components/FullscreenClockView';
 import { LanguageSelector } from './components/LanguageSelector';
 import { LanguageAutoDetectBanner } from './components/LanguageAutoDetectBanner';
 import { useLanguage } from './i18n/LanguageContext';
-import { parseCurrentRoute, updateBrowserUrl } from './utils/urlRouter';
+import {
+  parseCurrentRoute,
+  updateBrowserUrl,
+  composeDocumentTitle
+} from './utils/urlRouter';
 import {
   Clock,
   LayoutGrid,
@@ -90,6 +94,17 @@ export default function App() {
       localStorage.setItem('klokken_personal_clocks', JSON.stringify(personalClocks));
     } catch (e) {}
   }, [personalClocks]);
+
+  // Keep the browser tab <title> in the active language (i18n-driven).
+  // Runs on language change and whenever the active view/clock changes.
+  useEffect(() => {
+    document.title = composeDocumentTitle(activeTab, fullscreenClock?.name ?? null, {
+      appName: t('appTitle'),
+      base: t('pageTitle'),
+      dashboard: t('pageTitleDashboard'),
+      library: t('pageTitleLibrary')
+    });
+  }, [language, activeTab, fullscreenClock, t]);
 
   const handleTabChange = (newTab: 'gallery' | 'dashboard' | 'library') => {
     setActiveTab(newTab);

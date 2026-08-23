@@ -11,6 +11,10 @@ export interface TranslationDictionary {
   // Navigation & General UI
   appTitle: string;
   appSubtitle: string;
+  // Browser tab title (document <title>) per view
+  pageTitle: string;
+  pageTitleDashboard: string;
+  pageTitleLibrary: string;
   navGallery: string;
   navDashboard: string;
   navLibrary: string;

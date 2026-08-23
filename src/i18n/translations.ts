@@ -12,6 +12,9 @@ export const translations: Record<Language, TranslationDictionary> = {
   nl: {
     appTitle: 'Clocky',
     appSubtitle: 'Digitale klok visualizer platform',
+    pageTitle: 'Clocky - Digitale klok studio',
+    pageTitleDashboard: 'Multiklok-dashboard — Clocky',
+    pageTitleLibrary: 'Klokkenbibliotheek & community — Clocky',
     navGallery: 'Galerij',
     navDashboard: 'Multiklok-dashboard',
     navLibrary: 'Bibliotheek',
@@ -386,6 +389,9 @@ export const translations: Record<Language, TranslationDictionary> = {
   en: {
     appTitle: 'Clocky',
     appSubtitle: 'Digital clock visualizer platform',
+    pageTitle: 'Clocky - Digital Clock Studio',
+    pageTitleDashboard: 'Multi-clock Dashboard — Clocky',
+    pageTitleLibrary: 'Clock Library & Community — Clocky',
     navGallery: 'Gallery',
     navDashboard: 'Multi-clock dashboard',
     navLibrary: 'Library',
@@ -760,6 +766,9 @@ export const translations: Record<Language, TranslationDictionary> = {
   de: {
     appTitle: 'Clocky',
     appSubtitle: 'Digitale Uhr-Visualisierungsplattform',
+    pageTitle: 'Clocky - Digitales Uhrenstudio',
+    pageTitleDashboard: 'Multi-Uhr-Dashboard — Clocky',
+    pageTitleLibrary: 'Uhrenbibliothek & Community — Clocky',
     navGallery: 'Galerie',
     navDashboard: 'Multi-Uhr-Dashboard',
     navLibrary: 'Bibliothek',
@@ -1134,6 +1143,9 @@ export const translations: Record<Language, TranslationDictionary> = {
   fr: {
     appTitle: 'Clocky',
     appSubtitle: 'Plateforme de visualisation d’horloges numériques',
+    pageTitle: 'Clocky - Studio d’horloges numériques',
+    pageTitleDashboard: 'Tableau multi-horloges — Clocky',
+    pageTitleLibrary: 'Bibliothèque d’horloges & communauté — Clocky',
     navGallery: 'Galerie',
     navDashboard: 'Tableau multi-horloges',
     navLibrary: 'Bibliothèque',
@@ -1508,6 +1520,9 @@ export const translations: Record<Language, TranslationDictionary> = {
   es: {
     appTitle: 'Clocky',
     appSubtitle: 'Plataforma visualizadora de relojes digitales',
+    pageTitle: 'Clocky - Estudio de relojes digitales',
+    pageTitleDashboard: 'Panel multireloj — Clocky',
+    pageTitleLibrary: 'Biblioteca de relojes & comunidad — Clocky',
     navGallery: 'Galería',
     navDashboard: 'Panel multireloj',
     navLibrary: 'Biblioteca',

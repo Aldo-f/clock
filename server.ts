@@ -1,13 +1,35 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
+import { translations } from './src/i18n/translations';
+import { Language } from './src/i18n/types';
 
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+// House convention is port 3000; the env override exists for local verification
+// and container flexibility only (default unchanged).
+const PORT = Number(process.env.PORT) || 3000;
+
+// Supported language codes mirror src/i18n (nl is the default/fallback).
+const SUPPORTED_LANG_CODES: Language[] = ['nl', 'en', 'de', 'fr', 'es'];
+
+/**
+ * Resolves the localized document <title> from a ?lang=/?l= query value.
+ * Returns null when absent/unsupported so callers fall back to the static
+ * default-language HTML.
+ */
+function localizedPageTitle(langValue: unknown): string | null {
+  if (typeof langValue !== 'string') return null;
+  const code = langValue.toLowerCase().trim().slice(0, 2) as Language;
+  if (SUPPORTED_LANG_CODES.includes(code)) {
+    return translations[code].pageTitle;
+  }
+  return null;
+}
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -380,15 +402,44 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    // index:false routes every HTML request through the localized handler
+    // below; hashed assets are still served statically.
+    app.use(express.static(distPath, { index: false }));
+
+    // Cache the SPA shell so the <title> can be localized per request (US3):
+    // ?lang=/?l= with a supported code swaps in the translated title; anything
+    // else is served untouched with the static default-language title.
+    const indexPath = path.join(distPath, 'index.html');
+    const indexHtml = fs.readFileSync(indexPath, 'utf8');
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      let html = indexHtml;
+      const langValue =
+        req.query.lang !== undefined ? req.query.lang : req.query.l;
+      if (Array.isArray(langValue)) {
+        const first = langValue.find((v) => typeof v === 'string');
+        if (typeof first === 'string') {
+          html = injectLocalizedTitle(html, first);
+        }
+      } else if (typeof langValue === 'string' && langValue !== '') {
+        html = injectLocalizedTitle(html, langValue);
+      }
+      res.send(html);
     });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server gestart op http://localhost:${PORT}`);
   });
+}
+
+/**
+ * Replaces the <title>…</title> element with the localized variant.
+ * Unknown/absent language values leave the HTML unchanged (static nl default).
+ */
+function injectLocalizedTitle(html: string, langValue: string): string {
+  const title = localizedPageTitle(langValue);
+  if (!title) return html;
+  return html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
 }
 
 startServer();
