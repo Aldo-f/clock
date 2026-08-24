@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { ParticleBackground } from '../ParticleBackground';
-import { getZonedDate } from '../../utils/timeUtils';
+import { useZonedClock } from '../../utils/useZonedClock';
 
 interface Props {
   config: ClockConfig;
@@ -21,21 +21,11 @@ export const CustomAiClock: React.FC<Props> = ({
   timeOverride,
   isFullSize = false
 }) => {
-  const [internalTime, setInternalTime] = useState(() => getZonedDate(new Date(), timeZone || config.timeZone));
-
-  useEffect(() => {
-    if (timeOverride) return;
-    const timer = setInterval(() => {
-      const now = getZonedDate(new Date(), timeZone || config.timeZone);
-      setInternalTime(now);
-      if (soundEnabled && config.soundType) {
-        playClockSound(config.soundType, soundVolume);
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [soundEnabled, soundVolume, config.soundType, timeZone, config.timeZone, timeOverride]);
-
-  const activeTime = timeOverride ? getZonedDate(timeOverride, timeZone || config.timeZone) : internalTime;
+  const activeTime = useZonedClock(timeZone || config.timeZone, timeOverride, (now) => {
+    if (soundEnabled && config.soundType) {
+      playClockSound(config.soundType, soundVolume);
+    }
+  });
   const hours = activeTime.getHours();
   const minutes = activeTime.getMinutes();
   const seconds = activeTime.getSeconds();

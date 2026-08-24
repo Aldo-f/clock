@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
-import { getZonedDate } from '../../utils/timeUtils';
+import { useZonedClock } from '../../utils/useZonedClock';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 interface Props {
@@ -22,27 +22,18 @@ export const MarbleRunClock: React.FC<Props> = ({
   isFullSize = false
 }) => {
   const { t } = useLanguage();
-  const [internalTime, setInternalTime] = useState(() => getZonedDate(new Date(), timeZone || config.timeZone));
   const [animatingMarble, setAnimatingMarble] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (timeOverride) return;
-    const timer = setInterval(() => {
-      const now = getZonedDate(new Date(), timeZone || config.timeZone);
-      // On second 0, trigger marble drop sound/animation
-      if (now.getSeconds() === 0) {
-        setAnimatingMarble(true);
-        if (soundEnabled) {
-          playClockSound('marble_roll', soundVolume);
-        }
-        setTimeout(() => setAnimatingMarble(false), 1200);
+  const activeTime = useZonedClock(timeZone || config.timeZone, timeOverride, (now) => {
+    // On second 0, trigger marble drop sound/animation
+    if (now.getSeconds() === 0) {
+      setAnimatingMarble(true);
+      if (soundEnabled) {
+        playClockSound('marble_roll', soundVolume);
       }
-      setInternalTime(now);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [soundEnabled, soundVolume, timeZone, config.timeZone, timeOverride]);
-
-  const activeTime = timeOverride ? getZonedDate(timeOverride, timeZone || config.timeZone) : internalTime;
+      setTimeout(() => setAnimatingMarble(false), 1200);
+    }
+  });
   const hours = activeTime.getHours() % 12 || 12;
   const minutes = activeTime.getMinutes();
   const seconds = activeTime.getSeconds();

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
-import { getZonedDate, formatDateLocale } from '../../utils/timeUtils';
+import { formatDateLocale } from '../../utils/timeUtils';
+import { useZonedClock } from '../../utils/useZonedClock';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Eye, Disc, Volume2, VolumeX, Sparkles, RefreshCw } from 'lucide-react';
 
@@ -23,7 +24,6 @@ export const RotatingDiscClock: React.FC<Props> = ({
   isFullSize = false
 }) => {
   const { t, language } = useLanguage();
-  const [internalTime, setInternalTime] = useState(() => getZonedDate(new Date(), timeZone || config.timeZone));
   const [smoothMotion, setSmoothMotion] = useState<boolean>(true);
   const [showReticle, setShowReticle] = useState<boolean>(true);
   const [use24Hour, setUse24Hour] = useState<boolean>(false);
@@ -41,20 +41,12 @@ export const RotatingDiscClock: React.FC<Props> = ({
     setIsMuted(!soundEnabled);
   }, [soundEnabled]);
 
-  // Main time ticker
-  useEffect(() => {
-    if (timeOverride) return;
-    const interval = setInterval(() => {
-      const now = getZonedDate(new Date(), timeZone || config.timeZone);
-      setInternalTime(now);
-      if (!isMuted && config.soundType) {
-        playClockSound(config.soundType || 'gear_click', soundVolume * 0.8);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isMuted, soundVolume, config.soundType, timeZone, config.timeZone, timeOverride]);
+  const activeTime = useZonedClock(timeZone || config.timeZone, timeOverride, (now) => {
+    if (!isMuted && config.soundType) {
+      playClockSound(config.soundType || 'gear_click', soundVolume * 0.8);
+    }
+  });
 
-  const activeTime = timeOverride ? getZonedDate(timeOverride, timeZone || config.timeZone) : internalTime;
   const hours = activeTime.getHours();
   const minutes = activeTime.getMinutes();
   const seconds = activeTime.getSeconds();

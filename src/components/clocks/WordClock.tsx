@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
-import { getZonedDate } from '../../utils/timeUtils';
+import { useZonedClock } from '../../utils/useZonedClock';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Language } from '../../i18n/types';
 import { Eye, Info, Volume2, ShieldCheck, Sun, Palette, Globe } from 'lucide-react';
@@ -34,7 +34,6 @@ export const WordClock: React.FC<Props> = ({
 }) => {
   const { language: currentAppLang, t } = useLanguage();
   const [clockLang, setClockLang] = useState<Language>(currentAppLang);
-  const [internalTime, setInternalTime] = useState(() => getZonedDate(new Date(), timeZone || config.timeZone));
   const [finish, setFinish] = useState<FrontplateFinish>('matte_black');
   const [showSubtitle, setShowSubtitle] = useState<boolean>(true);
   const [showCornerDots, setShowCornerDots] = useState<boolean>(true);
@@ -51,23 +50,15 @@ export const WordClock: React.FC<Props> = ({
     }
   }, [config.accentColor]);
 
-  useEffect(() => {
-    if (timeOverride) return;
-    const timer = setInterval(() => {
-      const now = getZonedDate(new Date(), timeZone || config.timeZone);
-      setInternalTime(now);
-      if (soundEnabled && config.soundType) {
-        if (now.getSeconds() === 0) {
-          playClockSound(config.soundType || 'gear_click', soundVolume * 1.5);
-        } else {
-          playClockSound(config.soundType || 'soft_tick', soundVolume * 0.5);
-        }
+  const activeTime = useZonedClock(timeZone || config.timeZone, timeOverride, (now) => {
+    if (soundEnabled && config.soundType) {
+      if (now.getSeconds() === 0) {
+        playClockSound(config.soundType || 'gear_click', soundVolume * 1.5);
+      } else {
+        playClockSound(config.soundType || 'soft_tick', soundVolume * 0.5);
       }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [soundEnabled, soundVolume, config.soundType, timeZone, config.timeZone, timeOverride]);
-
-  const activeTime = timeOverride ? getZonedDate(timeOverride, timeZone || config.timeZone) : internalTime;
+    }
+  });
   const hours = activeTime.getHours();
   const minutes = activeTime.getMinutes();
   const seconds = activeTime.getSeconds();
