@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { ClockItem } from '../src/types';
+import { ClockItem, ClockType } from '../src/types';
 
 interface StoredCommunityClock extends ClockItem {
   likes: number;
@@ -128,7 +128,7 @@ export class CommunityClockStore {
     return this.clocks;
   }
 
-  add(clock: Omit<StoredCommunityClock, 'id' | 'likes' | 'createdAt' | 'type'> & { id?: string; type?: any; likes?: number; isBuiltIn?: boolean }): StoredCommunityClock {
+  add(clock: Omit<StoredCommunityClock, 'id' | 'likes' | 'createdAt' | 'type'> & { id?: string; type?: ClockType; likes?: number; isBuiltIn?: boolean }): StoredCommunityClock {
     const stored: StoredCommunityClock = {
       ...clock,
       type: clock.type || 'custom_ai',
@@ -192,6 +192,15 @@ export class CommunityClockStore {
     clock.likes += 1;
     this.scheduleSave();
     return clock.likes;
+  }
+
+  /** Writes pending changes immediately; used on shutdown and by tests. */
+  flushSync(): void {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    this.save();
   }
 
   private scheduleSave(): void {

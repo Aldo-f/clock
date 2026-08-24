@@ -46,21 +46,42 @@ The JSON object MUST strictly adhere to this schema:
 - customText: Short optional inscription or title on the dial (e.g. "CHRONOS", "01001", or empty string)
 - clockTypeCategory: One of ["Roterende Schijven", "Binaire Klok", "Knikkerbaan", "Kleurenpalet", "Woordklok", "Custom AI Design"]`;
 
+const CURATED_GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro'
+];
+
 export class AIWaterfallEngine {
   constructor(private store: AIProviderStore) {}
 
   /**
-   * Fetches models dynamically from a provider endpoint (v1/models).
+   * Fetches models from a provider endpoint (v1/models). The built-in Gemini
+   * provider queries Google's generativelanguage API when a key is available
+   * and falls back to a curated static list otherwise.
    */
   public async fetchProviderModels(provider: AIProviderConfig): Promise<string[]> {
     if (provider.type === 'gemini') {
-      return [
-        'gemini-2.5-flash',
-        'gemini-2.5-pro',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-pro'
-      ];
+      const key = provider.apiKey?.trim() || process.env.GEMINI_API_KEY;
+      if (key) {
+        try {
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key=${key}`
+          );
+          if (res.ok) {
+            const data: any = await res.json();
+            const names = (Array.isArray(data?.models) ? data.models : [])
+              .map((m: any) => String(m?.name || '').replace(/^models\//, ''))
+              .filter((n: string) => n.includes('gemini'));
+            if (names.length > 0) return names.sort((a: string, b: string) => a.localeCompare(b));
+          }
+        } catch {
+          // Network/API problems fall through to the curated list below.
+        }
+      }
+      return [...CURATED_GEMINI_MODELS];
     }
 
     if (!provider.baseUrl) {
@@ -123,7 +144,7 @@ export class AIWaterfallEngine {
           modelNames.sort((a, b) => a.localeCompare(b));
           return modelNames;
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         lastError = err instanceof Error ? err : new Error(String(err));
       } finally {
         clearTimeout(timeout);
@@ -283,7 +304,7 @@ export class AIWaterfallEngine {
     providerId: string,
     modelName: string,
     testPrompt: string = 'Maak een futuristische neon klok'
-  ): Promise<{ success: boolean; result?: any; error?: string; durationMs: number }> {
+  ): Promise<{ success: boolean; result?: ClockConfig & { name: string; description: string }; error?: string; durationMs: number }> {
     const provider = this.store.getProvider(providerId);
     if (!provider) {
       return { success: false, error: 'Provider niet gevonden.', durationMs: 0 };
@@ -321,7 +342,6 @@ export class AIWaterfallEngine {
     currentConfig?: unknown
   ): Promise<WaterfallSimulationResult> {
     const rawConfig = this.store.getRawConfig();
-    const activeSteps = rawConfig.waterfall.filter(w => w.isEnabled);
     const traces: WaterfallTraceStep[] = [];
     const overallStart = Date.now();
 
@@ -381,10 +401,12 @@ export class AIWaterfallEngine {
             providerUsed: provider.name,
             modelUsed: step.modelName
           };
-        } catch (err: any) {
+        } catch (err: unknown) {
           const durationMs = Date.now() - stepStart;
+          const message = err instanceof Error ? err.message : String(err);
           const isTimeout =
-            err.name === 'AbortError' || (err.message && err.message.toLowerCase().includes('timeout'));
+            (err instanceof Error && err.name === 'AbortError') ||
+            message.toLowerCase().includes('timeout');
 
           traces.push({
             stepIndex: i + 1,
@@ -394,7 +416,7 @@ export class AIWaterfallEngine {
             providerName: provider.name,
             status: isTimeout ? 'timeout' : 'failed',
             durationMs,
-            error: err instanceof Error ? err.message : String(err),
+            error: message,
             attemptIndex: pIdx + 1
           });
         }
@@ -453,11 +475,13 @@ export class AIWaterfallEngine {
     waterfallStep?: number;
   }> {
     const rawConfig = this.store.getRawConfig();
-    const activeSteps = rawConfig.waterfall.filter(w => w.isEnabled);
     const startTime = Date.now();
 
-    for (let i = 0; i < activeSteps.length; i++) {
-      const step = activeSteps[i];
+    // Iterate the FULL waterfall list so step numbers match simulateWaterfall
+    // and the admin trace view; disabled steps are skipped in place.
+    for (let i = 0; i < rawConfig.waterfall.length; i++) {
+      const step = rawConfig.waterfall[i];
+      if (!step.isEnabled) continue;
       // Collect providers for this model step (primary + fallbacks)
       const providerIdsToTry = [
         step.providerId,
@@ -494,7 +518,7 @@ export class AIWaterfallEngine {
             isFallback: false,
             waterfallStep: i + 1
           };
-        } catch (err: any) {
+        } catch (err: unknown) {
           const durationMs = Date.now() - stepStart;
           console.warn(
             `[Waterfall Step ${i + 1} / Provider "${provider.name}"] (${step.modelName}) failed:`,

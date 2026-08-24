@@ -298,7 +298,7 @@ app.post('/api/admin/ai-providers/:id/fetch-models', requireAdmin, async (req, r
     provider.availableModels = models;
     aiProviderStore.saveProvider(provider);
     res.json({ success: true, models });
-  } catch (err: any) {
+  } catch (err: unknown) {
     res.status(400).json({
       error: err instanceof Error ? err.message : 'Kon modellen niet ophalen van provider.'
     });
@@ -316,7 +316,7 @@ app.post('/api/admin/ai-providers/fetch-all-models', requireAdmin, async (req, r
       provider.availableModels = models;
       aiProviderStore.saveProvider(provider);
       results[provider.id] = { success: true, modelsCount: models.length };
-    } catch (err: any) {
+    } catch (err: unknown) {
       results[provider.id] = {
         success: false,
         modelsCount: 0,
@@ -339,7 +339,7 @@ app.post('/api/admin/ai-waterfall/simulate', requireAdmin, async (req, res) => {
   try {
     const result = await aiWaterfallEngine.simulateWaterfall(testPrompt, currentConfig);
     res.json(result);
-  } catch (err: any) {
+  } catch (err: unknown) {
     res.status(500).json({
       success: false,
       error: err instanceof Error ? err.message : 'Simulatiefout.'

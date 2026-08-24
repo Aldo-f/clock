@@ -49,6 +49,9 @@ export interface GenerationLog {
 const AI_CONFIG_PATH =
   process.env.AI_CONFIG_PATH || path.join(process.cwd(), 'data', 'ai-config.json');
 
+const GENERATION_LOGS_PATH =
+  process.env.GENERATION_LOGS_PATH || path.join(process.cwd(), 'data', 'generation-logs.json');
+
 function seedDefaultAIConfig(): AIConfigData {
   const now = new Date().toISOString();
   return {
@@ -145,11 +148,16 @@ function seedDefaultAIConfig(): AIConfigData {
 
 export class AIProviderStore {
   private config: AIConfigData;
-  private logs: GenerationLog[] = [];
+  private logs: GenerationLog[];
   private saveTimer: NodeJS.Timeout | null = null;
+  private logSaveTimer: NodeJS.Timeout | null = null;
 
-  constructor(private filePath: string = AI_CONFIG_PATH) {
+  constructor(
+    private filePath: string = AI_CONFIG_PATH,
+    private logsPath: string = GENERATION_LOGS_PATH
+  ) {
     this.config = this.load();
+    this.logs = this.loadLogs();
   }
 
   private load(): AIConfigData {
@@ -293,10 +301,59 @@ export class AIProviderStore {
     if (this.logs.length > 200) {
       this.logs.length = 200;
     }
+    this.scheduleLogSave();
     return fullLog;
   }
 
   public getLogs(): GenerationLog[] {
     return this.logs;
+  }
+
+  /** Writes pending changes immediately; used on shutdown and by tests. */
+  flushSync(): void {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    this.save();
+    if (this.logSaveTimer) {
+      clearTimeout(this.logSaveTimer);
+      this.logSaveTimer = null;
+    }
+    this.saveLogs();
+  }
+
+  private loadLogs(): GenerationLog[] {
+    try {
+      if (fs.existsSync(this.logsPath)) {
+        const parsed = JSON.parse(fs.readFileSync(this.logsPath, 'utf8'));
+        if (Array.isArray(parsed)) {
+          return parsed.slice(0, 200);
+        }
+      }
+    } catch (e) {
+      console.warn('Generation logs unreadable, starting empty:', e instanceof Error ? e.message : e);
+    }
+    return [];
+  }
+
+  private scheduleLogSave(): void {
+    if (this.logSaveTimer) return;
+    this.logSaveTimer = setTimeout(() => {
+      this.logSaveTimer = null;
+      this.saveLogs();
+    }, 300);
+    this.logSaveTimer.unref?.();
+  }
+
+  private saveLogs(): void {
+    try {
+      fs.mkdirSync(path.dirname(this.logsPath), { recursive: true });
+      const tmp = this.logsPath + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify(this.logs, null, 2));
+      fs.renameSync(tmp, this.logsPath);
+    } catch (e) {
+      console.error('Generation logs save failed:', e instanceof Error ? e.message : e);
+    }
   }
 }
