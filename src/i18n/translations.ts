@@ -1,4 +1,4 @@
-import { Language, LanguageOption, TranslationDictionary } from './types';
+import { Language, LanguageOption } from './types';
 
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'nl', label: 'Nederlands', nativeName: 'Nederlands', flag: '🇳🇱' },
@@ -8,8 +8,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'es', label: 'Español', nativeName: 'Español', flag: '🇪🇸' }
 ];
 
-export const translations: Record<Language, TranslationDictionary> = {
-  nl: {
+const nl = {
     appTitle: 'Clocky',
     appSubtitle: 'Digitale klok visualizer platform',
     pageTitle: 'Clocky - Digitale klok studio',
@@ -384,8 +383,12 @@ export const translations: Record<Language, TranslationDictionary> = {
     focusShortBreak: 'Korte Pauze',
     focusLongBreak: 'Lange Pauze',
     directUrlBadge: 'Directe URL'
-  },
+};
 
+export type TranslationDictionary = typeof nl;
+
+export const translations: Record<Language, TranslationDictionary> = {
+  nl,
   en: {
     appTitle: 'Clocky',
     appSubtitle: 'Digital clock visualizer platform',

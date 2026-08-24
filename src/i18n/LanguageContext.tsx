@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { Language, LanguageOption, TranslationDictionary } from './types';
-import { SUPPORTED_LANGUAGES, translations } from './translations';
+import { Language, LanguageOption } from './types';
+import { SUPPORTED_LANGUAGES, translations, TranslationDictionary } from './translations';
 import { ClockItem } from '../types';
+import { formatDateLocale as formatLocaleDate } from '../utils/timeUtils';
 
 interface LanguageContextType {
   language: Language;
@@ -19,25 +20,6 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
-
-// Cookie helpers with long expiry and Lax security
-function getCookie(name: string): string | null {
-  try {
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
-    return match ? decodeURIComponent(match[3]) : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-function setCookie(name: string, value: string, days = 365) {
-  try {
-    if (typeof document === 'undefined') return;
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
-  } catch (e) {}
-}
 
 const SUPPORTED_CODES: Language[] = ['nl', 'en', 'de', 'fr', 'es'];
 
@@ -121,20 +103,13 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
       }
 
-      // 2. Priority #2: Check Cookie
-      const cookieLang = matchLanguageCode(getCookie('klokken_language') || getCookie('app_lang'));
-      if (cookieLang) {
-        return { lang: cookieLang, isAuto: false, showNotice: false };
-      }
-
-      // 3. Priority #3: Check LocalStorage
+      // 2. Priority #2: Check LocalStorage
       const stored = matchLanguageCode(localStorage.getItem('klokken_language'));
       if (stored) {
-        setCookie('klokken_language', stored);
         return { lang: stored, isAuto: false, showNotice: false };
       }
 
-      // 4. Auto-detect from browser setting
+      // 3. Auto-detect from browser setting
       const browserLang = detectBrowserLanguage();
       // Auto-detected on first visit: show subtle UX notice
       return { lang: browserLang, isAuto: true, showNotice: true };
@@ -175,9 +150,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     setShowAutoDetectNotice(false);
 
     try {
-      // Persist to both LocalStorage and Cookie
+      // Persist to LocalStorage
       localStorage.setItem('klokken_language', lang);
-      setCookie('klokken_language', lang);
 
       // Synchronize in URL query parameter without full reload
       if (typeof window !== 'undefined') {
@@ -200,16 +174,14 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     try {
       localStorage.removeItem('klokken_language');
-      setCookie('klokken_language', '', -1); // Clear cookie
     } catch (e) {}
   };
 
   const dismissAutoDetectNotice = () => {
     setShowAutoDetectNotice(false);
-    // Mark preference in cookie/localStorage to remember dismissal
+    // Mark preference to remember dismissal
     try {
       localStorage.setItem('klokken_language', language);
-      setCookie('klokken_language', language);
     } catch (e) {}
   };
 
@@ -239,32 +211,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return clock;
   };
 
-  const formatDateLocale = (date: Date, timeZone?: string): string => {
-    const localeMap: Record<Language, string> = {
-      nl: 'nl-NL',
-      en: 'en-US',
-      de: 'de-DE',
-      fr: 'fr-FR',
-      es: 'es-ES'
-    };
-    const locale = localeMap[language] || 'nl-NL';
-
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    };
-    if (timeZone && timeZone !== 'local') {
-      options.timeZone = timeZone;
-    }
-
-    try {
-      return new Intl.DateTimeFormat(locale, options).format(date);
-    } catch (e) {
-      return date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    }
-  };
+  const formatDateLocale = (date: Date, timeZone?: string): string =>
+    formatLocaleDate(date, language, timeZone);
 
   const value = useMemo(
     () => ({
