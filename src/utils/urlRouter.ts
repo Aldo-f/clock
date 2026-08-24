@@ -10,7 +10,7 @@ function matchClockById(list: ClockItem[], rawId: string): ClockItem | undefined
 }
 
 export interface RouteState {
-  tab: 'gallery' | 'dashboard' | 'library';
+  tab: 'gallery' | 'dashboard' | 'library' | 'admin';
   fullscreenClockId: string | null;
   language?: string;
   timeZone?: string;
@@ -31,15 +31,17 @@ export function parseCurrentRoute(allClocks: ClockItem[]): RouteState {
   const embedParam = searchParams.get('embed') === 'true';
 
   let resolvedClockId: string | null = null;
-  let resolvedTab: 'gallery' | 'dashboard' | 'library' = 'gallery';
+  let resolvedTab: 'gallery' | 'dashboard' | 'library' | 'admin' = 'gallery';
 
-  // Check path patterns like /clock/:id or /dashboard or /library
+  // Check path patterns like /clock/:id or /dashboard or /library or /admin
   if (path.startsWith('/clock/')) {
     const clockIdOrSlug = path.replace('/clock/', '').trim();
     if (clockIdOrSlug) {
       const match = matchClockById(allClocks, clockIdOrSlug);
       resolvedClockId = match ? match.id : clockIdOrSlug;
     }
+  } else if (path === '/admin' || tabParam === 'admin') {
+    resolvedTab = 'admin';
   } else if (path === '/dashboard' || path === '/multi' || tabParam === 'dashboard') {
     resolvedTab = 'dashboard';
   } else if (path === '/library' || path === '/community' || tabParam === 'library') {
@@ -76,6 +78,8 @@ export interface DocumentTitleParts {
   dashboard: string;
   /** Library view title. */
   library: string;
+  /** Admin view title. */
+  admin?: string;
 }
 
 /**
@@ -84,12 +88,15 @@ export interface DocumentTitleParts {
  * from src/i18n/translations.ts (house rule: i18n mandatory).
  */
 export function composeDocumentTitle(
-  tab: 'gallery' | 'dashboard' | 'library',
+  tab: 'gallery' | 'dashboard' | 'library' | 'admin',
   fullscreenClockName: string | null,
   parts: DocumentTitleParts
 ): string {
   if (fullscreenClockName) {
     return `${fullscreenClockName} — ${parts.appName}`;
+  }
+  if (tab === 'admin') {
+    return parts.admin || `Admin Dashboard — ${parts.appName}`;
   }
   if (tab === 'dashboard') {
     return parts.dashboard;
@@ -106,7 +113,7 @@ export function composeDocumentTitle(
  * App.tsx (see composeDocumentTitle).
  */
 export function updateBrowserUrl(
-  tab: 'gallery' | 'dashboard' | 'library',
+  tab: 'gallery' | 'dashboard' | 'library' | 'admin',
   fullscreenClock: ClockItem | null,
   language?: string,
   replace: boolean = false
@@ -115,6 +122,8 @@ export function updateBrowserUrl(
 
   if (fullscreenClock) {
     targetPath = `/clock/${fullscreenClock.id}`;
+  } else if (tab === 'admin') {
+    targetPath = '/admin';
   } else if (tab === 'dashboard') {
     targetPath = '/dashboard';
   } else if (tab === 'library') {

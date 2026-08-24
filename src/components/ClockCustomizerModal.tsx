@@ -89,6 +89,8 @@ export const ClockCustomizerModal: React.FC<Props> = ({
     }
   };
 
+  const [generationInfo, setGenerationInfo] = useState<{ provider: string; model?: string; duration?: number; isFallback?: boolean } | null>(null);
+
   const presetPrompts = getLocalizedPresetPrompts();
 
   const handleGenerateAi = async (promptToUse?: string) => {
@@ -97,6 +99,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
 
     setIsGenerating(true);
     setNotification(t('aiGeneratingStatus'));
+    setGenerationInfo(null);
 
     try {
       const res = await fetch('/api/generate-clock', {
@@ -111,6 +114,15 @@ export const ClockCustomizerModal: React.FC<Props> = ({
         if (data.clockConfig.name) setClockName(data.clockConfig.name);
         if (data.clockConfig.description) setClockDesc(data.clockConfig.description);
 
+        if (data.providerUsed) {
+          setGenerationInfo({
+            provider: data.providerUsed,
+            model: data.modelUsed,
+            duration: data.durationMs,
+            isFallback: data.isFallback
+          });
+        }
+
         setNotification(t('aiSuccessNotice'));
       } else {
         setNotification('⚠️ ' + (data.error || 'Error'));
@@ -119,7 +131,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
       setNotification('⚠️ Error connecting with AI API.');
     } finally {
       setIsGenerating(false);
-      setTimeout(() => setNotification(null), 4000);
+      setTimeout(() => setNotification(null), 5000);
     }
   };
 
@@ -320,6 +332,19 @@ export const ClockCustomizerModal: React.FC<Props> = ({
                         </>
                       )}
                     </button>
+
+                    {generationInfo && (
+                      <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-300 animate-fade-in font-mono">
+                        <span className="flex items-center space-x-1">
+                          <span>⚡ {generationInfo.provider}</span>
+                          {generationInfo.model && <span className="text-slate-400">({generationInfo.model})</span>}
+                          {generationInfo.isFallback && <span className="text-amber-400 ml-1">[Fallback]</span>}
+                        </span>
+                        {generationInfo.duration && (
+                          <span className="text-slate-400">{generationInfo.duration}ms</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Preset Prompt Suggestions */}

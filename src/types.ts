@@ -163,3 +163,60 @@ export const ALLOWED_CLOCK_TYPE_CATEGORIES = [
   'Woordklok',
   'Custom AI Design'
 ] as const;
+
+export type UserRole = 'admin' | 'user';
+
+export interface User {
+  id: string;
+  username: string;
+  email?: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
+export type AIProviderType = 'gemini' | 'openai_compatible';
+
+export interface AIProviderConfig {
+  id: string;
+  name: string;
+  type: AIProviderType;
+  baseUrl?: string;
+  apiKey?: string;
+  customHeaders?: Record<string, string>;
+  isEnabled: boolean;
+  availableModels: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WaterfallStep {
+  id: string;
+  providerId: string;
+  modelName: string;
+  isEnabled: boolean;
+  timeoutMs: number;
+  temperature: number;
+}
+
+export interface AIConfigData {
+  providers: AIProviderConfig[];
+  waterfall: WaterfallStep[];
+  fallbackToLocalOnFailure: boolean;
+}
+
+export interface GenerationLog {
+  id: string;
+  timestamp: string;
+  prompt: string;
+  success: boolean;
+  providerIdUsed?: string;
+  providerNameUsed?: string;
+  modelUsed?: string;
+  waterfallStepIndex?: number;
+  durationMs: number;
+  error?: string;
+  isFallback: boolean;
+}
+

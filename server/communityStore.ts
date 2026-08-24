@@ -128,17 +128,62 @@ export class CommunityClockStore {
     return this.clocks;
   }
 
-  add(clock: Omit<StoredCommunityClock, 'id' | 'likes' | 'createdAt' | 'type'>): StoredCommunityClock {
+  add(clock: Omit<StoredCommunityClock, 'id' | 'likes' | 'createdAt' | 'type'> & { id?: string; type?: any; likes?: number; isBuiltIn?: boolean }): StoredCommunityClock {
     const stored: StoredCommunityClock = {
       ...clock,
-      type: 'custom_ai',
-      id: 'comm-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-      likes: 1,
+      type: clock.type || 'custom_ai',
+      id: clock.id || ('comm-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)),
+      likes: clock.likes ?? 1,
       createdAt: new Date().toISOString()
     };
     this.clocks.unshift(stored);
     this.scheduleSave();
     return stored;
+  }
+
+  get(id: string): StoredCommunityClock | undefined {
+    return this.clocks.find(c => c.id === id);
+  }
+
+  update(id: string, updates: Partial<StoredCommunityClock>): StoredCommunityClock | null {
+    const index = this.clocks.findIndex(c => c.id === id);
+    if (index === -1) {
+      // If not found, add it as an override/new item
+      if (updates.name && updates.config) {
+        return this.add({
+          id,
+          name: updates.name,
+          description: updates.description || '',
+          author: updates.author || 'Admin',
+          category: updates.category || 'Custom AI',
+          config: updates.config,
+          type: updates.type || 'custom_ai',
+          likes: updates.likes ?? 1,
+          isBuiltIn: updates.isBuiltIn
+        });
+      }
+      return null;
+    }
+
+    const current = this.clocks[index];
+    const updated: StoredCommunityClock = {
+      ...current,
+      ...updates,
+      id: current.id, // preserve ID
+      config: updates.config ? { ...current.config, ...updates.config } : current.config
+    };
+
+    this.clocks[index] = updated;
+    this.scheduleSave();
+    return updated;
+  }
+
+  delete(id: string): boolean {
+    const index = this.clocks.findIndex(c => c.id === id);
+    if (index === -1) return false;
+    this.clocks.splice(index, 1);
+    this.scheduleSave();
+    return true;
   }
 
   like(id: string): number | null {
