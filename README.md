@@ -76,4 +76,4 @@ Community data lives in memory on the server — it does not survive restarts.
 
 ## Stack
 
-React 19 · TypeScript · Vite 6 · Tailwind CSS 4 · Express · @google/genai · motion · lucide-react
+React 19 · TypeScript · Vite 6 · Tailwind CSS 4 · Express · @google/genai · lucide-react
