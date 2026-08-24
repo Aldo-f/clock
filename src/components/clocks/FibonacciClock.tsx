@@ -2,6 +2,7 @@ import React from 'react';
 import { ClockConfig } from '../../types';
 import { playClockSound } from '../../utils/audioSynth';
 import { useZonedClock } from '../../utils/useZonedClock';
+import { solveFibonacci } from '../../utils/fibonacciSolver';
 
 interface Props {
   config: ClockConfig;
@@ -30,42 +31,9 @@ export const FibonacciClock: React.FC<Props> = ({
   const seconds = activeTime.getSeconds();
   const minUnits = Math.floor(minutes / 5);
 
-  // Fibonacci decomposition solver
-  // We have squares with values: [1a, 1b, 2, 3, 5]
-  const solveFib = (targetHr: number, targetMin: number) => {
-    // Greedy heuristic / precomputed solutions for 1..12
-    // Return array of colors for [5, 3, 2, 1b, 1a]
-    const fibValues = [5, 3, 2, 1, 1];
-    const hrBits = [false, false, false, false, false];
-    const minBits = [false, false, false, false, false];
-
-    let remHr = targetHr;
-    for (let i = 0; i < 5; i++) {
-      if (remHr >= fibValues[i]) {
-        hrBits[i] = true;
-        remHr -= fibValues[i];
-      }
-    }
-
-    let remMin = targetMin;
-    for (let i = 0; i < 5; i++) {
-      if (remMin >= fibValues[i]) {
-        minBits[i] = true;
-        remMin -= fibValues[i];
-      }
-    }
-
-    return fibValues.map((val, idx) => {
-      const inHr = hrBits[idx];
-      const inMin = minBits[idx];
-      if (inHr && inMin) return 'blue'; // Both
-      if (inHr) return 'red'; // Hour
-      if (inMin) return 'green'; // Minute
-      return 'none'; // Unused
-    });
-  };
-
-  const squareColors = solveFib(hours, minUnits);
+  const squareColors = solveFibonacci(hours, minUnits);
+  // [5, 3, 2, 1b, 1a]
+  // 5 = index 0, 3 = index 1, 2 = index 2, 1b = index 3, 1a = index 4
   // [5, 3, 2, 1b, 1a]
   // 5 = index 0, 3 = index 1, 2 = index 2, 1b = index 3, 1a = index 4
 
