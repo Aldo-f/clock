@@ -103,7 +103,8 @@ npm test          # vitest run              ← must pass before claiming done
 11. **Vite HMR flag.** `DISABLE_HMR=true` disables HMR/file-watching (used by agents);
     don't remove that behavior from `vite.config.ts`.
 12. **No nested git roots.** This directory is a submodule of `Aldo-f/dev`; commit here,
-    push to `Aldo-f/clock`, then bump the pointer in `~/dev` if needed.
+    push to `Aldo-f/clock`, then ALWAYS bump the pointer in `~/dev` and push `core main`
+    as part of the same task — do not leave it for later or ask first.
 
 ## Deployment notes (homelab)
 
