@@ -330,40 +330,50 @@ export default function App() {
             </div>
 
             {/* Featured Clocks Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div id="featured-clocks-section" className="space-y-6">
+              <div id="featured-clocks-header" className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/60">
                 <div>
-                  <h3 className="text-lg font-bold text-white">{t('galleryTitle')}</h3>
-                  <p className="text-xs text-slate-400">{t('gallerySubtitle')}</p>
+                  <h3 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                    <span>{t('galleryTitle')}</span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold border border-slate-700/60">
+                      {allClocksList.length}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{t('gallerySubtitle')}</p>
                 </div>
               </div>
 
               {/* Grid of Preset & Custom Clocks */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div id="clocks-gallery-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {allClocksList.map((rawClock) => {
                   const clock = translateClock(rawClock);
                   return (
                     <div
                       key={clock.id}
-                      className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between hover:border-slate-700 transition-all group"
+                      id={`clock-card-${clock.id}`}
+                      className="bg-slate-900/90 border border-slate-800/90 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-sky-500/5 hover:border-sky-500/40 flex flex-col justify-between transition-all duration-300 group"
                     >
                       {/* Live Clock Stage */}
-                      <div className="relative w-full aspect-square bg-slate-950 border-b border-slate-800 overflow-hidden">
+                      <div className="relative w-full aspect-square bg-slate-950/80 border-b border-slate-800/80 overflow-hidden">
                         <ClockRenderer clock={clock} soundEnabled={soundEnabled} />
 
                         {/* Quick Action Overlay (Link & Fullscreen) */}
                         <div className="absolute top-3 right-3 flex items-center space-x-1.5 z-20">
                           <button
+                            id={`btn-share-${clock.id}`}
                             onClick={(e) => handleCopyClockLink(e, clock)}
-                            className="p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95"
+                            className="p-2 bg-slate-900/80 hover:bg-sky-500 text-slate-300 hover:text-white rounded-xl backdrop-blur-md border border-slate-700/60 shadow-lg transition-all hover:scale-105 active:scale-95"
                             title={t('shareLink')}
+                            aria-label={t('shareLink')}
                           >
                             <Share2 className="w-4 h-4" />
                           </button>
                           <button
+                            id={`btn-fullscreen-${clock.id}`}
                             onClick={() => handleOpenFullSize(clock)}
-                            className="p-2 bg-slate-900/80 hover:bg-sky-500 text-white rounded-xl backdrop-blur-md border border-white/10 shadow-lg opacity-80 hover:opacity-100 transition-all hover:scale-105 active:scale-95"
+                            className="p-2 bg-slate-900/80 hover:bg-sky-500 text-slate-300 hover:text-white rounded-xl backdrop-blur-md border border-slate-700/60 shadow-lg transition-all hover:scale-105 active:scale-95"
                             title={t('viewFullscreen')}
+                            aria-label={t('viewFullscreen')}
                           >
                             <Maximize2 className="w-4 h-4" />
                           </button>
@@ -371,32 +381,39 @@ export default function App() {
                       </div>
 
                       {/* Meta & Actions */}
-                      <div className="p-5 space-y-3">
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="p-5 space-y-4">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
                             <span className="inline-block px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[10px] font-bold uppercase tracking-wider">
                               {translateCategory(clock.category)}
                             </span>
+                            {clock.author && (
+                              <span className="text-[11px] text-slate-400 truncate max-w-[120px]">
+                                {clock.author}
+                              </span>
+                            )}
                           </div>
                           <h4 className="text-base font-bold text-white group-hover:text-sky-400 transition-colors">
                             {clock.name}
                           </h4>
-                          <p className="text-xs text-slate-400 mt-1 line-clamp-2">{clock.description}</p>
+                          <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{clock.description}</p>
                         </div>
 
                         {/* Action Buttons: Full Size & AI Customizer */}
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                        <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-800/80">
                           <button
+                            id={`btn-view-${clock.id}`}
                             onClick={() => handleOpenFullSize(clock)}
-                            className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold rounded-xl border border-slate-700 transition-all flex items-center justify-center space-x-1.5"
+                            className="py-2.5 px-4 bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold rounded-xl border border-slate-700/80 transition-all flex items-center justify-center space-x-1.5 active:scale-98"
                           >
                             <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
                             <span>{t('navFullscreen')}</span>
                           </button>
 
                           <button
+                            id={`btn-edit-${clock.id}`}
                             onClick={() => handleOpenCustomizer(clock)}
-                            className="py-2.5 bg-sky-500/10 hover:bg-sky-500 text-sky-400 hover:text-white text-xs font-bold rounded-xl border border-sky-500/30 transition-all flex items-center justify-center space-x-1.5"
+                            className="py-2.5 px-4 bg-sky-500/10 hover:bg-sky-500 text-sky-400 hover:text-white text-xs font-bold rounded-xl border border-sky-500/30 transition-all flex items-center justify-center space-x-1.5 active:scale-98"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
                             <span>{t('edit')}</span>
