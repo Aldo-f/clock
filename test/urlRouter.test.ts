@@ -51,6 +51,13 @@ describe('parseCurrentRoute', () => {
     expect(parseCurrentRoute(clocks).tab).toBe('library');
   });
 
+  it('parses the admin view via path and ?tab= alias', () => {
+    setLocation('https://x.test/admin');
+    expect(parseCurrentRoute(clocks).tab).toBe('admin');
+    setLocation('https://x.test/?t=admin');
+    expect(parseCurrentRoute(clocks).tab).toBe('admin');
+  });
+
   it('?c= overrides or complements the path', () => {
     setLocation('https://x.test/?c=nixie');
     expect(parseCurrentRoute(clocks).fullscreenClockId).toBe('clock-nixie');
