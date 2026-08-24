@@ -7,5 +7,5 @@ coverage/
 .env*
 !.env.example
 
-# Runtime community-store persistence
-data/
+# Runtime community-store persistence (repo-root data dir only)
+/data/
