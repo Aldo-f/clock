@@ -16,6 +16,7 @@ import { AIWaterfallEngine } from './server/aiWaterfallEngine';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '10mb' }));
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -75,7 +76,11 @@ const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 600,
   standardHeaders: 'draft-8',
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: {
+    xForwardedForHeader: false,
+    forwardedHeader: false
+  }
 });
 
 // Generation rate limiter (15 requests per 5 mins per IP)
@@ -84,7 +89,11 @@ const generateLimiter = rateLimit({
   limit: 30,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  message: { error: 'Te veel generatieverzoeken. Probeer het later opnieuw.' }
+  message: { error: 'Te veel generatieverzoeken. Probeer het later opnieuw.' },
+  validate: {
+    xForwardedForHeader: false,
+    forwardedHeader: false
+  }
 });
 
 // -------------------------------------------------------------

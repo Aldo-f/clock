@@ -66,7 +66,12 @@ const PRESET_MAPPINGS: Record<string, { nameKey: keyof TranslationDictionary; de
   'clock-color-palette': { nameKey: 'presetColorName', descKey: 'presetColorDesc', catKey: 'catArt' },
   'clock-word-dutch': { nameKey: 'presetWordName', descKey: 'presetWordDesc', catKey: 'catTypographic' },
   'clock-nixie': { nameKey: 'presetNixieName', descKey: 'presetNixieDesc', catKey: 'catRetro' },
-  'clock-fibonacci': { nameKey: 'presetFibName', descKey: 'presetFibDesc', catKey: 'catMath' }
+  'clock-fibonacci': { nameKey: 'presetFibName', descKey: 'presetFibDesc', catKey: 'catMath' },
+  'clock-solar-orbit': { nameKey: 'presetSolarName', descKey: 'presetSolarDesc', catKey: 'catMechanical' },
+  'clock-split-flap': { nameKey: 'presetFlapName', descKey: 'presetFlapDesc', catKey: 'catRetro' },
+  'clock-liquid-ferrofluid': { nameKey: 'presetLiquidName', descKey: 'presetLiquidDesc', catKey: 'catDigital' },
+  'clock-soundwave-oscilloscope': { nameKey: 'presetOscilloscopeName', descKey: 'presetOscilloscopeDesc', catKey: 'catRetro' },
+  'clock-game-of-life': { nameKey: 'presetLifeName', descKey: 'presetLifeDesc', catKey: 'catMath' }
 };
 
 const CATEGORY_MAP: Record<string, keyof TranslationDictionary> = {
