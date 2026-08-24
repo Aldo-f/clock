@@ -39,28 +39,6 @@ export function getLocalizedTimeZones(t: (key: any, fb?: string) => string): Tim
   });
 }
 
-export function getTimeZoneCity(id: string, t?: (key: any, fb?: string) => string): string {
-  if (id === 'local') {
-    return t ? t('tzLocal', 'Local') : 'Local';
-  }
-  if (id === 'UTC') {
-    return t ? t('tzUniversal', 'UTC Universal') : 'UTC Universal';
-  }
-  const found = TIME_ZONES.find((z) => z.id === id);
-  return found ? found.city : id.split('/').pop()?.replace('_', ' ') || id;
-}
-
-export function getTimeZoneLabel(id: string, t?: (key: any, fb?: string) => string): string {
-  if (id === 'local') {
-    return t ? t('tzLocalDevice', 'Local Time (Device)') : 'Local Time (Device)';
-  }
-  if (id === 'UTC') {
-    return t ? t('tzUniversalDesc', 'UTC / GMT Universal') : 'UTC / GMT Universal';
-  }
-  const found = TIME_ZONES.find((z) => z.id === id);
-  return found ? found.label : id;
-}
-
 export function getZonedDate(date: Date, timeZone?: string): Date {
   if (!timeZone || timeZone === 'local') {
     return date;
@@ -87,10 +65,6 @@ export function formatTimeDisplay(date: Date, format24h: boolean = true, showSec
 
   const hoursStr = hours.toString().padStart(2, '0');
   return `${hoursStr}:${minutes}${showSeconds ? `:${seconds}` : ''}${suffix}`;
-}
-
-export function formatDateDutch(date: Date, timeZone?: string): string {
-  return formatDateLocale(date, 'nl', timeZone);
 }
 
 export function formatDateLocale(date: Date, lang: string = 'nl', timeZone?: string): string {

@@ -1,5 +1,14 @@
 import { ClockItem } from '../types';
 
+/**
+ * Finds a clock by ID case-insensitively, also matching the `clock-<id>` prefix form.
+ * Returns the matched ClockItem or undefined if not found.
+ */
+function matchClockById(list: ClockItem[], rawId: string): ClockItem | undefined {
+  const v = rawId.toLowerCase();
+  return list.find(c => c.id.toLowerCase() === v || c.id.toLowerCase() === `clock-${v}`);
+}
+
 export interface RouteState {
   tab: 'gallery' | 'dashboard' | 'library';
   fullscreenClockId: string | null;
@@ -28,13 +37,8 @@ export function parseCurrentRoute(allClocks: ClockItem[]): RouteState {
   if (path.startsWith('/clock/')) {
     const clockIdOrSlug = path.replace('/clock/', '').trim();
     if (clockIdOrSlug) {
-      const match = allClocks.find(
-        (c) =>
-          c.id.toLowerCase() === clockIdOrSlug.toLowerCase() ||
-          c.id.toLowerCase() === `clock-${clockIdOrSlug.toLowerCase()}`
-      );
-      if (match) resolvedClockId = match.id;
-      else resolvedClockId = clockIdOrSlug;
+      const match = matchClockById(allClocks, clockIdOrSlug);
+      resolvedClockId = match ? match.id : clockIdOrSlug;
     }
   } else if (path === '/dashboard' || path === '/multi' || tabParam === 'dashboard') {
     resolvedTab = 'dashboard';
@@ -46,11 +50,7 @@ export function parseCurrentRoute(allClocks: ClockItem[]): RouteState {
 
   // Query parameter ?clock= overrides or complements
   if (clockParam) {
-    const match = allClocks.find(
-      (c) =>
-        c.id.toLowerCase() === clockParam.toLowerCase() ||
-        c.id.toLowerCase() === `clock-${clockParam.toLowerCase()}`
-    );
+    const match = matchClockById(allClocks, clockParam);
     resolvedClockId = match ? match.id : clockParam;
   }
 
@@ -126,11 +126,7 @@ export function updateBrowserUrl(
   // Maintain URL search params
   const currentParams = new URLSearchParams(window.location.search);
   
-  if (fullscreenClock) {
-    currentParams.delete('clock'); // Clean path /clock/:id already conveys this
-  } else {
-    currentParams.delete('clock');
-  }
+  currentParams.delete('clock');
 
   if (language) {
     currentParams.set('lang', language);
