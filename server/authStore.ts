@@ -22,7 +22,20 @@ interface StoredUser extends User {
 const AUTH_STORE_PATH =
   process.env.AUTH_STORE_PATH || path.join(process.cwd(), 'data', 'users.json');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'clocky-secret-jwt-key-2026-secure-session';
+const DEV_JWT_FALLBACK = 'clocky-dev-insecure-jwt-fallback';
+
+function getJwtSecret(): string {
+  const fromEnv = process.env.JWT_SECRET;
+  if (fromEnv) return fromEnv;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production.');
+  }
+  console.warn('[authStore] JWT_SECRET not set — using insecure dev fallback. Never run production like this.');
+  return DEV_JWT_FALLBACK;
+}
+
+const DEFAULT_ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 function hashPassword(password: string, salt: string): string {
   return crypto.scryptSync(password, salt, 64).toString('hex');
@@ -64,14 +77,20 @@ export class AuthStore {
       const salt = crypto.randomBytes(16).toString('hex');
       const defaultAdmin: StoredUser = {
         id: 'user-admin-01',
-        username: 'admin',
+        username: DEFAULT_ADMIN_USERNAME,
         email: 'admin@clocky.studio',
         role: 'admin',
         isActive: true,
         createdAt: new Date().toISOString(),
         salt,
-        passwordHash: hashPassword('admin123', salt)
+        passwordHash: hashPassword(DEFAULT_ADMIN_PASSWORD || 'admin123', salt)
       };
+      if (!DEFAULT_ADMIN_PASSWORD) {
+        console.warn(
+          `[authStore] Seeded default admin "${DEFAULT_ADMIN_USERNAME}" with password "admin123" — ` +
+          'set ADMIN_PASSWORD (and ADMIN_USERNAME) in .env to override, then log in and change it.'
+        );
+      }
       this.users.push(defaultAdmin);
       this.save();
     }
@@ -95,6 +114,15 @@ export class AuthStore {
     } catch (e) {
       console.error('Auth store save failed:', e instanceof Error ? e.message : e);
     }
+  }
+
+  /** Writes pending changes immediately; used on shutdown and by tests. */
+  flushSync(): void {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    this.save();
   }
 
   public sanitizeUser(user: StoredUser): User {
@@ -178,7 +206,7 @@ export class AuthStore {
     const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
     const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
     const signature = crypto
-      .createHmac('sha256', JWT_SECRET)
+      .createHmac('sha256', getJwtSecret())
       .update(`${header}.${body}`)
       .digest('base64url');
     return `${header}.${body}.${signature}`;
@@ -190,11 +218,14 @@ export class AuthStore {
       if (parts.length !== 3) return null;
       const [header, body, signature] = parts;
       const expectedSignature = crypto
-        .createHmac('sha256', JWT_SECRET)
+        .createHmac('sha256', getJwtSecret())
         .update(`${header}.${body}`)
         .digest('base64url');
 
-      if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+      if (
+        signature.length !== expectedSignature.length ||
+        !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+      ) {
         return null;
       }
 
