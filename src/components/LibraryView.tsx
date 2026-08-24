@@ -76,10 +76,10 @@ export const LibraryView: React.FC<Props> = ({
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex p-1 bg-slate-950 border border-slate-800 rounded-2xl">
+        <div className="flex p-1 bg-slate-950 border border-slate-800 rounded-2xl w-full sm:w-auto">
           <button
             onClick={() => setTab('community')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               tab === 'community'
                 ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
                 : 'text-slate-400 hover:text-white'
@@ -91,7 +91,7 @@ export const LibraryView: React.FC<Props> = ({
 
           <button
             onClick={() => setTab('personal')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               tab === 'personal'
                 ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
                 : 'text-slate-400 hover:text-white'
@@ -104,7 +104,7 @@ export const LibraryView: React.FC<Props> = ({
       </div>
 
       {/* Search & Filter Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/60 p-3 sm:p-4 rounded-2xl border border-slate-800">
         <div className="relative w-full sm:w-72">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
@@ -116,17 +116,17 @@ export const LibraryView: React.FC<Props> = ({
           />
         </div>
 
-        {/* Category Pills */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+        {/* Category Pills (Horizontal scroll on mobile) */}
+        <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 no-scrollbar">
           {rawCategories.map((rawCat) => {
             const catLabel = rawCat === 'Alle' ? t('catAll') : translateCategory(rawCat);
             return (
               <button
                 key={rawCat}
                 onClick={() => setSelectedCategory(rawCat)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
                   selectedCategory === rawCat
-                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold'
                     : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                 }`}
               >
@@ -139,7 +139,7 @@ export const LibraryView: React.FC<Props> = ({
 
       {/* Cards Grid */}
       {filteredList.length === 0 ? (
-        <div className="text-center py-12 bg-slate-900/40 border border-slate-800 rounded-3xl">
+        <div className="text-center py-12 bg-slate-900/40 border border-slate-800 rounded-3xl p-6">
           <BookOpen className="w-10 h-10 text-slate-600 mx-auto mb-2" />
           <p className="text-sm font-semibold text-slate-300">{t('libEmpty')}</p>
           <p className="text-xs text-slate-500 mt-1">
@@ -147,14 +147,14 @@ export const LibraryView: React.FC<Props> = ({
           </p>
           <button
             onClick={() => onOpenCustomizer()}
-            className="mt-4 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs rounded-xl shadow-lg transition-all inline-flex items-center space-x-2"
+            className="mt-4 px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs rounded-xl shadow-lg transition-all inline-flex items-center space-x-2 active:scale-95"
           >
             <Sparkles className="w-4 h-4" />
             <span>{t('libDesignNew')}</span>
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredList.map((clock) => (
             <div
               key={clock.id}

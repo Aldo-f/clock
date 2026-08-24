@@ -194,6 +194,7 @@ export interface AIProviderConfig {
 export interface WaterfallStep {
   id: string;
   providerId: string;
+  fallbackProviderIds?: string[];
   modelName: string;
   isEnabled: boolean;
   timeoutMs: number;
@@ -204,6 +205,30 @@ export interface AIConfigData {
   providers: AIProviderConfig[];
   waterfall: WaterfallStep[];
   fallbackToLocalOnFailure: boolean;
+}
+
+export interface WaterfallTraceStep {
+  stepIndex: number;
+  stepId: string;
+  modelName: string;
+  providerId: string;
+  providerName: string;
+  status: 'success' | 'failed' | 'skipped' | 'timeout';
+  durationMs: number;
+  error?: string;
+  attemptIndex?: number;
+}
+
+export interface WaterfallSimulationResult {
+  success: boolean;
+  totalDurationMs: number;
+  traces: WaterfallTraceStep[];
+  usedFallback: boolean;
+  fallbackDeactivated?: boolean;
+  clockConfig?: ClockConfig & { name: string; description: string };
+  providerUsed?: string;
+  modelUsed?: string;
+  error?: string;
 }
 
 export interface GenerationLog {

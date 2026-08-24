@@ -19,6 +19,7 @@ export interface AIProviderConfig {
 export interface WaterfallStep {
   id: string;
   providerId: string;
+  fallbackProviderIds?: string[];
   modelName: string;
   isEnabled: boolean;
   timeoutMs: number;
@@ -267,6 +268,7 @@ export class AIProviderStore {
     this.config.waterfall = waterfall.map((step, idx) => ({
       id: step.id || `step-${idx + 1}-${Date.now()}`,
       providerId: step.providerId,
+      fallbackProviderIds: Array.isArray(step.fallbackProviderIds) ? step.fallbackProviderIds : [],
       modelName: step.modelName,
       isEnabled: step.isEnabled ?? true,
       timeoutMs: step.timeoutMs || 9000,

@@ -2,12 +2,12 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { AIProviderConfig, AIProviderStore, WaterfallStep } from './aiProviderStore';
 import { sanitizeClockConfig } from './clockValidation';
 import { generateFallbackClockConfig } from './fallbackGenerator';
-import { ClockConfig } from '../src/types';
+import { ClockConfig, WaterfallTraceStep, WaterfallSimulationResult } from '../src/types';
 
 function getGeminiClient(customApiKey?: string) {
   const apiKey = customApiKey || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is missing.');
+    throw new Error('GEMINI_API_KEY is niet ingesteld.');
   }
   return new GoogleGenAI({
     apiKey,
@@ -50,24 +50,33 @@ export class AIWaterfallEngine {
   constructor(private store: AIProviderStore) {}
 
   /**
-   * Fetches models dynamically from a provider endpoint.
+   * Fetches models dynamically from a provider endpoint (v1/models).
    */
   public async fetchProviderModels(provider: AIProviderConfig): Promise<string[]> {
     if (provider.type === 'gemini') {
       return [
         'gemini-2.5-flash',
         'gemini-2.5-pro',
+        'gemini-2.0-flash',
         'gemini-1.5-flash',
         'gemini-1.5-pro'
       ];
     }
 
     if (!provider.baseUrl) {
-      throw new Error('Base URL ontbreekt voor deze OpenAI-compatibele provider.');
+      throw new Error('Basis-URL ontbreekt voor deze OpenAI-compatibele provider.');
     }
 
     const cleanBase = provider.baseUrl.replace(/\/+$/, '');
-    const modelsUrl = cleanBase.endsWith('/models') ? cleanBase : `${cleanBase}/models`;
+    const candidateUrls: string[] = [];
+
+    if (cleanBase.endsWith('/models')) {
+      candidateUrls.push(cleanBase);
+    } else if (cleanBase.endsWith('/v1')) {
+      candidateUrls.push(`${cleanBase}/models`);
+    } else {
+      candidateUrls.push(`${cleanBase}/v1/models`, `${cleanBase}/models`);
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -78,42 +87,56 @@ export class AIWaterfallEngine {
       headers['Authorization'] = `Bearer ${provider.apiKey.trim()}`;
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    let lastError: Error | null = null;
 
-    try {
-      const res = await fetch(modelsUrl, {
-        method: 'GET',
-        headers,
-        signal: controller.signal
-      });
+    for (const modelsUrl of candidateUrls) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
 
-      if (!res.ok) {
-        throw new Error(`Provider response error ${res.status}: ${res.statusText}`);
+      try {
+        const res = await fetch(modelsUrl, {
+          method: 'GET',
+          headers,
+          signal: controller.signal
+        });
+
+        if (!res.ok) {
+          lastError = new Error(`Provider HTTP ${res.status}: ${res.statusText} (${modelsUrl})`);
+          continue;
+        }
+
+        const data = await res.json();
+        const rawList = Array.isArray(data)
+          ? data
+          : Array.isArray(data.data)
+          ? data.data
+          : Array.isArray(data.models)
+          ? data.models
+          : [];
+
+        const modelNames: string[] = rawList
+          .map((m: any) => (typeof m === 'string' ? m : m.id || m.name))
+          .filter((name: any): name is string => typeof name === 'string' && Boolean(name));
+
+        if (modelNames.length > 0) {
+          // Sort alphabetically
+          modelNames.sort((a, b) => a.localeCompare(b));
+          return modelNames;
+        }
+      } catch (err: any) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+      } finally {
+        clearTimeout(timeout);
       }
-
-      const data = await res.json();
-      const rawList = Array.isArray(data) ? data : data.data || [];
-      const modelNames: string[] = rawList
-        .map((m: any) => (typeof m === 'string' ? m : m.id || m.name))
-        .filter((name: any): name is string => typeof name === 'string' && Boolean(name));
-
-      if (modelNames.length === 0) {
-        throw new Error('Geen modellen gevonden in de provider respons.');
-      }
-
-      // Sort alphabetically for clean UI
-      modelNames.sort();
-      return modelNames;
-    } finally {
-      clearTimeout(timeout);
     }
+
+    throw lastError || new Error('Geen modellen gevonden op het provider-endpoint.');
   }
 
   /**
    * Executes a single provider/model generation attempt.
    */
-  private async executeStep(
+  public async executeStep(
     provider: AIProviderConfig,
     step: WaterfallStep,
     prompt: string,
@@ -176,8 +199,8 @@ export class AIWaterfallEngine {
       const raw = JSON.parse(resultText);
       return {
         ...sanitizeClockConfig(raw),
-        name: trimmed(raw?.name, 80) || 'Aangepaste AI Klok',
-        description: trimmed(raw?.description, 200) || 'Aangepast klokontwerp.'
+        name: trimmed(raw?.name, 80) || 'Aangepaste AI-klok',
+        description: trimmed(raw?.description, 200) || 'Aangepast klokontwerp gegenereerd door AI.'
       };
     }
 
@@ -189,7 +212,9 @@ export class AIWaterfallEngine {
     const cleanBase = provider.baseUrl.replace(/\/+$/, '');
     const chatUrl = cleanBase.endsWith('/chat/completions')
       ? cleanBase
-      : `${cleanBase}/chat/completions`;
+      : cleanBase.endsWith('/v1')
+      ? `${cleanBase}/chat/completions`
+      : `${cleanBase}/v1/chat/completions`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -223,13 +248,13 @@ export class AIWaterfallEngine {
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`OpenAI Provider HTTP ${res.status}: ${errorText.slice(0, 300)}`);
+        throw new Error(`Provider HTTP ${res.status}: ${errorText.slice(0, 300)}`);
       }
 
       const data = await res.json();
       const content = data?.choices?.[0]?.message?.content;
       if (!content) {
-        throw new Error('Geen geldige responsinhoud ontvangen van AI model.');
+        throw new Error('Geen responsinhoud ontvangen van AI-model.');
       }
 
       // Parse JSON from content (strip any accidental code blocks if model added them)
@@ -243,8 +268,8 @@ export class AIWaterfallEngine {
       const raw = JSON.parse(cleaned);
       return {
         ...sanitizeClockConfig(raw),
-        name: trimmed(raw?.name, 80) || 'Aangepaste AI Klok',
-        description: trimmed(raw?.description, 200) || 'Aangepast klokontwerp.'
+        name: trimmed(raw?.name, 80) || 'Aangepaste AI-klok',
+        description: trimmed(raw?.description, 200) || 'Aangepast klokontwerp gegenereerd door AI.'
       };
     } finally {
       clearTimeout(timeout);
@@ -289,6 +314,132 @@ export class AIWaterfallEngine {
   }
 
   /**
+   * Simulates the waterfall pipeline execution and records detailed step-by-step traces for the playground.
+   */
+  public async simulateWaterfall(
+    prompt: string,
+    currentConfig?: unknown
+  ): Promise<WaterfallSimulationResult> {
+    const rawConfig = this.store.getRawConfig();
+    const activeSteps = rawConfig.waterfall.filter(w => w.isEnabled);
+    const traces: WaterfallTraceStep[] = [];
+    const overallStart = Date.now();
+
+    for (let i = 0; i < rawConfig.waterfall.length; i++) {
+      const step = rawConfig.waterfall[i];
+      if (!step.isEnabled) {
+        const primaryProvider = this.store.getProvider(step.providerId);
+        traces.push({
+          stepIndex: i + 1,
+          stepId: step.id,
+          modelName: step.modelName,
+          providerId: step.providerId,
+          providerName: primaryProvider?.name || 'Onbekend',
+          status: 'skipped',
+          durationMs: 0
+        });
+        continue;
+      }
+
+      // Collect all providers for this model step
+      const providerIdsToTry = [
+        step.providerId,
+        ...(Array.isArray(step.fallbackProviderIds) ? step.fallbackProviderIds : [])
+      ];
+
+      let stepSuccess = false;
+
+      for (let pIdx = 0; pIdx < providerIdsToTry.length; pIdx++) {
+        const pId = providerIdsToTry[pIdx];
+        const provider = this.store.getProvider(pId);
+        if (!provider || !provider.isEnabled) {
+          continue;
+        }
+
+        const stepStart = Date.now();
+        try {
+          const result = await this.executeStep(provider, step, prompt, currentConfig);
+          const durationMs = Date.now() - stepStart;
+
+          traces.push({
+            stepIndex: i + 1,
+            stepId: step.id,
+            modelName: step.modelName,
+            providerId: provider.id,
+            providerName: provider.name,
+            status: 'success',
+            durationMs,
+            attemptIndex: pIdx + 1
+          });
+
+          return {
+            success: true,
+            totalDurationMs: Date.now() - overallStart,
+            traces,
+            usedFallback: false,
+            clockConfig: result,
+            providerUsed: provider.name,
+            modelUsed: step.modelName
+          };
+        } catch (err: any) {
+          const durationMs = Date.now() - stepStart;
+          const isTimeout =
+            err.name === 'AbortError' || (err.message && err.message.toLowerCase().includes('timeout'));
+
+          traces.push({
+            stepIndex: i + 1,
+            stepId: step.id,
+            modelName: step.modelName,
+            providerId: provider.id,
+            providerName: provider.name,
+            status: isTimeout ? 'timeout' : 'failed',
+            durationMs,
+            error: err instanceof Error ? err.message : String(err),
+            attemptIndex: pIdx + 1
+          });
+        }
+      }
+    }
+
+    // All active AI steps failed
+    if (rawConfig.fallbackToLocalOnFailure === false) {
+      return {
+        success: false,
+        totalDurationMs: Date.now() - overallStart,
+        traces,
+        usedFallback: false,
+        fallbackDeactivated: true,
+        error: 'Alle geconfigureerde AI-modellen en providers zijn mislukt en de lokale fallback-engine is uitgeschakeld.'
+      };
+    }
+
+    // Run fallback
+    const fallbackStart = Date.now();
+    const fallbackConfig = generateFallbackClockConfig(prompt, currentConfig);
+    const fallbackDuration = Date.now() - fallbackStart;
+
+    traces.push({
+      stepIndex: rawConfig.waterfall.length + 1,
+      stepId: 'step-local-fallback',
+      modelName: 'deterministic-rules',
+      providerId: 'local-fallback',
+      providerName: 'Lokale slimme fallback-engine',
+      status: 'success',
+      durationMs: fallbackDuration
+    });
+
+    return {
+      success: true,
+      totalDurationMs: Date.now() - overallStart,
+      traces,
+      usedFallback: true,
+      clockConfig: fallbackConfig,
+      providerUsed: 'Lokale slimme fallback-engine',
+      modelUsed: 'deterministic-rules'
+    };
+  }
+
+  /**
    * Runs the full waterfall generation pipeline.
    */
   public async generateClock(
@@ -307,53 +458,79 @@ export class AIWaterfallEngine {
 
     for (let i = 0; i < activeSteps.length; i++) {
       const step = activeSteps[i];
-      const provider = this.store.getProvider(step.providerId);
-      if (!provider || !provider.isEnabled) {
-        continue;
+      // Collect providers for this model step (primary + fallbacks)
+      const providerIdsToTry = [
+        step.providerId,
+        ...(Array.isArray(step.fallbackProviderIds) ? step.fallbackProviderIds : [])
+      ];
+
+      for (let pIdx = 0; pIdx < providerIdsToTry.length; pIdx++) {
+        const pId = providerIdsToTry[pIdx];
+        const provider = this.store.getProvider(pId);
+        if (!provider || !provider.isEnabled) {
+          continue;
+        }
+
+        const stepStart = Date.now();
+        try {
+          const result = await this.executeStep(provider, step, prompt, currentConfig);
+          const durationMs = Date.now() - stepStart;
+
+          this.store.addLog({
+            prompt,
+            success: true,
+            providerIdUsed: provider.id,
+            providerNameUsed: provider.name,
+            modelUsed: step.modelName,
+            waterfallStepIndex: i + 1,
+            durationMs,
+            isFallback: false
+          });
+
+          return {
+            clockConfig: result,
+            providerUsed: provider.name,
+            modelUsed: step.modelName,
+            isFallback: false,
+            waterfallStep: i + 1
+          };
+        } catch (err: any) {
+          const durationMs = Date.now() - stepStart;
+          console.warn(
+            `[Waterfall Step ${i + 1} / Provider "${provider.name}"] (${step.modelName}) failed:`,
+            err instanceof Error ? err.message : err
+          );
+
+          this.store.addLog({
+            prompt,
+            success: false,
+            providerIdUsed: provider.id,
+            providerNameUsed: provider.name,
+            modelUsed: step.modelName,
+            waterfallStepIndex: i + 1,
+            durationMs,
+            error: err instanceof Error ? err.message : String(err),
+            isFallback: false
+          });
+        }
       }
+    }
 
-      const stepStart = Date.now();
-      try {
-        const result = await this.executeStep(provider, step, prompt, currentConfig);
-        const durationMs = Date.now() - stepStart;
-
-        this.store.addLog({
-          prompt,
-          success: true,
-          providerIdUsed: provider.id,
-          providerNameUsed: provider.name,
-          modelUsed: step.modelName,
-          waterfallStepIndex: i + 1,
-          durationMs,
-          isFallback: false
-        });
-
-        return {
-          clockConfig: result,
-          providerUsed: provider.name,
-          modelUsed: step.modelName,
-          isFallback: false,
-          waterfallStep: i + 1
-        };
-      } catch (err: any) {
-        const durationMs = Date.now() - stepStart;
-        console.warn(
-          `[Waterfall Step ${i + 1}] Provider "${provider.name}" (${step.modelName}) failed:`,
-          err instanceof Error ? err.message : err
-        );
-
-        this.store.addLog({
-          prompt,
-          success: false,
-          providerIdUsed: provider.id,
-          providerNameUsed: provider.name,
-          modelUsed: step.modelName,
-          waterfallStepIndex: i + 1,
-          durationMs,
-          error: err instanceof Error ? err.message : String(err),
-          isFallback: false
-        });
-      }
+    // Check if local fallback engine is allowed
+    if (rawConfig.fallbackToLocalOnFailure === false) {
+      const totalDuration = Date.now() - startTime;
+      this.store.addLog({
+        prompt,
+        success: false,
+        providerNameUsed: 'Geen (Fallback uitgeschakeld)',
+        modelUsed: 'none',
+        durationMs: totalDuration,
+        error: 'Alle AI-providers zijn mislukt en de lokale fallback-engine is uitgeschakeld.',
+        isFallback: false
+      });
+      throw new Error(
+        'Alle geconfigureerde AI-modellen en providers zijn mislukt en de lokale fallback-engine is uitgeschakeld.'
+      );
     }
 
     // All waterfall steps failed or none enabled -> Local Deterministic Engine
@@ -363,7 +540,7 @@ export class AIWaterfallEngine {
     this.store.addLog({
       prompt,
       success: true,
-      providerNameUsed: 'Local Fallback Engine',
+      providerNameUsed: 'Lokale slimme fallback-engine',
       modelUsed: 'deterministic-generator',
       durationMs: totalDuration,
       isFallback: true
@@ -371,7 +548,7 @@ export class AIWaterfallEngine {
 
     return {
       clockConfig: fallbackConfig,
-      providerUsed: 'Local Smart Design Engine',
+      providerUsed: 'Lokale slimme fallback-engine',
       modelUsed: 'deterministic-rules',
       isFallback: true
     };

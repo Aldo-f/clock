@@ -33,7 +33,7 @@ export const GenerationLogsView: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Activity className="w-5 h-5 text-indigo-400" />
             <h3 className="text-lg font-bold text-white tracking-tight">
-              AI Generatie & Waterfall Telemetrie
+              AI-generatie & waterfall-telemetrie
             </h3>
           </div>
           <p className="text-xs text-slate-400 mt-1">

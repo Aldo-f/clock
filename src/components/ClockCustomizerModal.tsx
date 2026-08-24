@@ -248,10 +248,10 @@ export const ClockCustomizerModal: React.FC<Props> = ({
           {/* Right / Bottom: Control Tabs & Options (7 cols) */}
           <div className="lg:col-span-7 p-6 flex flex-col justify-between bg-slate-900/90 overflow-y-auto">
             {/* Control Navigation Tabs */}
-            <div className="flex border-b border-slate-800 pb-3 space-x-2 text-xs font-semibold">
+            <div className="flex border-b border-slate-800 pb-3 space-x-2 text-xs font-semibold overflow-x-auto no-scrollbar shrink-0">
               <button
                 onClick={() => setActiveTab('ai')}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ${
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap shrink-0 ${
                   activeTab === 'ai'
                     ? 'bg-sky-500 text-white shadow-lg'
                     : 'text-slate-400 hover:text-white bg-slate-800/60'
@@ -263,7 +263,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
 
               <button
                 onClick={() => setActiveTab('colors')}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ${
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap shrink-0 ${
                   activeTab === 'colors'
                     ? 'bg-sky-500 text-white shadow-lg'
                     : 'text-slate-400 hover:text-white bg-slate-800/60'
@@ -275,7 +275,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
 
               <button
                 onClick={() => setActiveTab('style')}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ${
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap shrink-0 ${
                   activeTab === 'style'
                     ? 'bg-sky-500 text-white shadow-lg'
                     : 'text-slate-400 hover:text-white bg-slate-800/60'
@@ -287,7 +287,7 @@ export const ClockCustomizerModal: React.FC<Props> = ({
 
               <button
                 onClick={() => setActiveTab('sound')}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ${
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap shrink-0 ${
                   activeTab === 'sound'
                     ? 'bg-sky-500 text-white shadow-lg'
                     : 'text-slate-400 hover:text-white bg-slate-800/60'

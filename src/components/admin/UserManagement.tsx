@@ -230,23 +230,23 @@ export const UserManagement: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-auto">
             <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
             <input
               type="text"
               placeholder="Zoek gebruiker..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl focus:outline-none focus:border-indigo-500 w-48 sm:w-64"
+              className="pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl focus:outline-none focus:border-indigo-500 w-full sm:w-64"
             />
           </div>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-500/20 flex items-center space-x-1.5"
+            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center space-x-1.5"
           >
             <UserPlus className="w-4 h-4" />
-            <span>Nieuwe Gebruiker Aanmaken</span>
+            <span>Nieuwe Gebruiker</span>
           </button>
         </div>
       </div>

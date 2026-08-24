@@ -149,9 +149,11 @@ app.post('/api/generate-clock', generateLimiter, async (req, res) => {
       waterfallStep: result.waterfallStep
     });
   } catch (error: unknown) {
-    console.error('Fatal waterfall generation error:', error);
+    console.error('Waterfall generation error:', error);
+    const msg =
+      error instanceof Error ? error.message : 'Er is een fout opgetreden bij het ontwerpen van de klok.';
     return res.status(500).json({
-      error: 'Er is een fout opgetreden bij het ontwerpen van de klok.'
+      error: msg
     });
   }
 });
@@ -299,6 +301,48 @@ app.post('/api/admin/ai-providers/:id/fetch-models', requireAdmin, async (req, r
   } catch (err: any) {
     res.status(400).json({
       error: err instanceof Error ? err.message : 'Kon modellen niet ophalen van provider.'
+    });
+  }
+});
+
+app.post('/api/admin/ai-providers/fetch-all-models', requireAdmin, async (req, res) => {
+  const rawConfig = aiProviderStore.getRawConfig();
+  const results: Record<string, { success: boolean; modelsCount: number; error?: string }> = {};
+
+  for (const provider of rawConfig.providers) {
+    if (!provider.isEnabled) continue;
+    try {
+      const models = await aiWaterfallEngine.fetchProviderModels(provider);
+      provider.availableModels = models;
+      aiProviderStore.saveProvider(provider);
+      results[provider.id] = { success: true, modelsCount: models.length };
+    } catch (err: any) {
+      results[provider.id] = {
+        success: false,
+        modelsCount: 0,
+        error: err instanceof Error ? err.message : String(err)
+      };
+    }
+  }
+
+  res.json({
+    success: true,
+    results,
+    config: aiProviderStore.getConfig(true)
+  });
+});
+
+app.post('/api/admin/ai-waterfall/simulate', requireAdmin, async (req, res) => {
+  const { prompt, currentConfig } = req.body ?? {};
+  const testPrompt = prompt && typeof prompt === 'string' ? prompt : 'Maak een futuristische neon cyberpunk klok';
+
+  try {
+    const result = await aiWaterfallEngine.simulateWaterfall(testPrompt, currentConfig);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err instanceof Error ? err.message : 'Simulatiefout.'
     });
   }
 });

@@ -91,51 +91,90 @@ export const DashboardView: React.FC<Props> = ({
   const companionSlots = slots.slice(1);
 
   return (
-    <div className="w-full flex flex-col space-y-6">
+    <div className="w-full flex flex-col space-y-4 sm:space-y-6">
       {/* Dashboard Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 p-4 sm:p-6 rounded-3xl shadow-2xl backdrop-blur-md">
-        <div className="flex items-center space-x-3">
-          <div className="p-3 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
-            <LayoutGrid className="w-6 h-6" />
+      <div className="flex flex-col gap-3.5 bg-slate-900/90 border border-slate-800 p-4 sm:p-6 rounded-3xl shadow-2xl backdrop-blur-md">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 sm:p-3 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
+              <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">{t('dashTitle')}</h2>
+              <p className="text-xs text-slate-400">
+                {t('dashSubtitle')}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-black text-white tracking-tight">{t('dashTitle')}</h2>
-            <p className="text-xs text-slate-400">
-              {t('dashSubtitle')}
-            </p>
+
+          {/* Master Sound & Add Slot */}
+          <div className="flex items-center space-x-2">
+            {/* Sound Master Controls */}
+            <div className="flex items-center space-x-1.5 bg-slate-950 px-2.5 py-1.5 rounded-2xl border border-slate-800">
+              <button
+                onClick={onToggleSound}
+                className={`p-1 rounded-lg text-xs ${soundEnabled ? 'text-amber-400' : 'text-slate-500'}`}
+                title={soundEnabled ? t('soundOff') : t('soundOn')}
+              >
+                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </button>
+              {soundEnabled && (
+                <input
+                  type="range"
+                  min="0.05"
+                  max="0.5"
+                  step="0.05"
+                  value={soundVolume}
+                  onChange={(e) => setSoundVolume(parseFloat(e.target.value))}
+                  className="w-14 sm:w-20 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                  title={t('fsSoundVolume')}
+                />
+              )}
+            </div>
+
+            {/* Add Slot Button */}
+            {slots.length < 9 && (
+              <button
+                onClick={handleAddSlot}
+                className="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 rounded-2xl transition-all text-xs font-bold flex items-center space-x-1.5 active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('dashAddClock')}</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Quick Presets */}
-          <div className="hidden sm:flex items-center space-x-1 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs">
-            <span className="px-2 text-slate-500 font-bold uppercase text-[10px]">{t('presets')}:</span>
+        {/* Action Controls Toolbar: Presets & Layouts */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+          {/* Quick Presets (Horizontally scrollable on small mobile screens) */}
+          <div className="flex items-center space-x-1 overflow-x-auto pb-1 max-w-full no-scrollbar">
+            <span className="px-1 text-slate-500 font-bold uppercase text-[10px] shrink-0">{t('presets')}:</span>
             <button
               onClick={() => applyPreset('world_hub')}
-              className="px-2.5 py-1 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all font-semibold"
+              className="px-2.5 py-1 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all font-semibold text-xs shrink-0 whitespace-nowrap bg-slate-950/60 border border-slate-800/80"
             >
               🌐 {t('dashPresetWorld')}
             </button>
             <button
               onClick={() => applyPreset('horology')}
-              className="px-2.5 py-1 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all font-semibold"
+              className="px-2.5 py-1 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all font-semibold text-xs shrink-0 whitespace-nowrap bg-slate-950/60 border border-slate-800/80"
             >
               ⚙️ {t('dashPresetHorology')}
             </button>
             <button
               onClick={() => applyPreset('cyberpunk')}
-              className="px-2.5 py-1 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all font-semibold"
+              className="px-2.5 py-1 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all font-semibold text-xs shrink-0 whitespace-nowrap bg-slate-950/60 border border-slate-800/80"
             >
               ⚡ {t('dashPresetCyberpunk')}
             </button>
           </div>
 
           {/* Layout Mode Switcher */}
-          <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs text-slate-300">
+          <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs text-slate-300 shrink-0">
             <button
               onClick={() => setLayoutMode('spotlight')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+              className={`px-2.5 py-1 rounded-xl font-bold transition-all ${
                 layoutMode === 'spotlight' ? 'bg-sky-500 text-white shadow-md' : 'hover:bg-slate-800'
               }`}
               title={t('dashSpotlight')}
@@ -144,7 +183,7 @@ export const DashboardView: React.FC<Props> = ({
             </button>
             <button
               onClick={() => setLayoutMode('grid2')}
-              className={`px-2.5 py-1.5 rounded-xl font-bold transition-all ${
+              className={`px-2.5 py-1 rounded-xl font-bold transition-all ${
                 layoutMode === 'grid2' ? 'bg-sky-500 text-white shadow-md' : 'hover:bg-slate-800'
               }`}
               title={t('dashGrid2')}
@@ -153,7 +192,7 @@ export const DashboardView: React.FC<Props> = ({
             </button>
             <button
               onClick={() => setLayoutMode('grid3')}
-              className={`px-2.5 py-1.5 rounded-xl font-bold transition-all ${
+              className={`px-2.5 py-1 rounded-xl font-bold transition-all ${
                 layoutMode === 'grid3' ? 'bg-sky-500 text-white shadow-md' : 'hover:bg-slate-800'
               }`}
               title={t('dashGrid3')}
@@ -161,40 +200,6 @@ export const DashboardView: React.FC<Props> = ({
               3x3
             </button>
           </div>
-
-          {/* Sound Master Controls */}
-          <div className="flex items-center space-x-2 bg-slate-950 px-3 py-1.5 rounded-2xl border border-slate-800">
-            <button
-              onClick={onToggleSound}
-              className={`p-1.5 rounded-xl text-xs ${soundEnabled ? 'text-amber-400' : 'text-slate-500'}`}
-              title={soundEnabled ? t('soundOff') : t('soundOn')}
-            >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </button>
-            {soundEnabled && (
-              <input
-                type="range"
-                min="0.05"
-                max="0.5"
-                step="0.05"
-                value={soundVolume}
-                onChange={(e) => setSoundVolume(parseFloat(e.target.value))}
-                className="w-16 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
-                title={t('fsSoundVolume')}
-              />
-            )}
-          </div>
-
-          {/* Add Slot Button */}
-          {slots.length < 9 && (
-            <button
-              onClick={handleAddSlot}
-              className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 rounded-2xl transition-all text-xs font-bold flex items-center space-x-1.5 active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{t('dashAddClock')}</span>
-            </button>
-          )}
         </div>
       </div>
 
