@@ -72,6 +72,7 @@ Community data lives in memory on the server — it does not survive restarts.
 | `npm run build` | Client bundle + bundled server (`dist/server.cjs`)  |
 | `npm start`     | Run the production server                           |
 | `npm run lint`  | `tsc --noEmit` type check                           |
+| `npm test`      | `vitest run` unit tests                             |
 | `npm run clean` | Remove `dist/`                                      |
 
 ## Stack
