@@ -4,115 +4,40 @@ import fs from 'fs';
 import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
-import { translations } from './src/i18n/translations';
-import { Language } from './src/i18n/types';
+import { rateLimit } from 'express-rate-limit';
+
+import { ClockConfig } from './src/types';
+import { injectLocalizedTitle } from './server/titleLocalization';
+import { generateFallbackClockConfig } from './server/fallbackGenerator';
+import { sanitizeClockConfig, sanitizeCommunityClockInput } from './server/clockValidation';
+import { CommunityClockStore } from './server/communityStore';
 
 dotenv.config();
 
 const app = express();
+app.use(express.json({ limit: '10mb' }));
 // House convention is port 3000; the env override exists for local verification
 // and container flexibility only (default unchanged).
 const PORT = Number(process.env.PORT) || 3000;
 
-// Supported language codes mirror src/i18n (nl is the default/fallback).
-const SUPPORTED_LANG_CODES: Language[] = ['nl', 'en', 'de', 'fr', 'es'];
+const store = new CommunityClockStore();
 
-/**
- * Resolves the localized document <title> from a ?lang=/?l= query value.
- * Returns null when absent/unsupported so callers fall back to the static
- * default-language HTML.
- */
-function localizedPageTitle(langValue: unknown): string | null {
-  if (typeof langValue !== 'string') return null;
-  const code = langValue.toLowerCase().trim().slice(0, 2) as Language;
-  if (SUPPORTED_LANG_CODES.includes(code)) {
-    return translations[code].pageTitle;
-  }
-  return null;
-}
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false
+});
 
-app.use(express.json({ limit: '10mb' }));
+// Each call costs Gemini quota — keep the burn rate bounded.
+const generateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Te veel generatieverzoeken. Probeer het later opnieuw.' }
+});
 
-// In-memory store for community shared clocks
-let communityClocksStore: any[] = [
-  {
-    id: 'preset-neon-cyber',
-    name: 'Cyberpunk neon matrix',
-    description: 'Futuristische neon klok met gepatenteerde gloeieffecten en cyber-stijl cijfers.',
-    author: 'KlokkenStudio Team',
-    category: 'Futuristisch',
-    likes: 142,
-    createdAt: new Date().toISOString(),
-    config: {
-      type: 'custom_ai',
-      style: 'cyberpunk',
-      bgColor: '#0d0221',
-      accentColor: '#00f6ff',
-      secondaryColor: '#ff0055',
-      textColor: '#ffffff',
-      fontFamily: 'monospace',
-      showSeconds: true,
-      glowEffect: true,
-      particleEffect: 'matrix',
-      discStyle: 'neon_rings',
-      handStyle: 'laser_beam',
-      soundType: 'digital_beep',
-      customText: 'CYBER TıME'
-    }
-  },
-  {
-    id: 'preset-zen-minimal',
-    name: 'Zen minimalist Japan',
-    description: 'Rustgevende en elegante klok met zachte pastelverlopen en serene typografie.',
-    author: 'Sora_Design',
-    category: 'Minimalistisch',
-    likes: 98,
-    createdAt: new Date().toISOString(),
-    config: {
-      type: 'custom_ai',
-      style: 'minimal',
-      bgColor: '#fbf9f5',
-      accentColor: '#d97706',
-      secondaryColor: '#94a3b8',
-      textColor: '#1e293b',
-      fontFamily: 'serif',
-      showSeconds: true,
-      glowEffect: false,
-      particleEffect: 'sakura',
-      discStyle: 'clean',
-      handStyle: 'needle',
-      soundType: 'soft_tick',
-      customText: '静けさ - SERENITY'
-    }
-  },
-  {
-    id: 'preset-steampunk-gear',
-    name: 'Steampunk brass gearing',
-    description: 'Klassieke koperen tandwielstijl met stoom-deeltjes en vintage Romeinse cijfers.',
-    author: 'ClockworkMaster',
-    category: 'Retro & Vintage',
-    likes: 215,
-    createdAt: new Date().toISOString(),
-    config: {
-      type: 'custom_ai',
-      style: 'steampunk',
-      bgColor: '#1c1917',
-      accentColor: '#f59e0b',
-      secondaryColor: '#78350f',
-      textColor: '#fef3c7',
-      fontFamily: 'serif',
-      showSeconds: true,
-      glowEffect: true,
-      particleEffect: 'steam',
-      discStyle: 'brass_gears',
-      handStyle: 'ornate_brass',
-      soundType: 'gear_click',
-      customText: 'TEMPUS FUGIT'
-    }
-  }
-];
-
-// Helper to initialize Gemini SDK safely on request
 function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -128,133 +53,13 @@ function getGeminiClient() {
   });
 }
 
-// Helper fallback generator when Gemini API is rate-limited, depleted, or offline
-function generateFallbackClockConfig(prompt: string, currentConfig?: any) {
-  const p = prompt.toLowerCase();
-
-  let bgColor = currentConfig?.bgColor || '#0f172a';
-  let accentColor = currentConfig?.accentColor || '#38bdf8';
-  let secondaryColor = currentConfig?.secondaryColor || '#f43f5e';
-  let textColor = currentConfig?.textColor || '#f8fafc';
-  let style = currentConfig?.style || 'cyberpunk';
-  let particleEffect = currentConfig?.particleEffect || 'stars';
-  let discStyle = currentConfig?.discStyle || 'neon_rings';
-  let handStyle = currentConfig?.handStyle || 'laser_beam';
-  let soundType = currentConfig?.soundType || 'soft_tick';
-  let fontFamily = currentConfig?.fontFamily || 'monospace';
-  let glowEffect = currentConfig?.glowEffect ?? true;
-  let showSeconds = currentConfig?.showSeconds ?? true;
-  let customText = currentConfig?.customText || 'CUSTOM CLOCK';
-
-  if (p.includes('oceaan') || p.includes('water') || p.includes('blauw') || p.includes('zee') || p.includes('bubbel')) {
-    bgColor = '#0369a1';
-    accentColor = '#38bdf8';
-    secondaryColor = '#0284c7';
-    textColor = '#e0f2fe';
-    style = 'nature';
-    particleEffect = 'bubbles';
-    soundType = 'water_drop';
-    discStyle = 'radar';
-    customText = 'OCEAN TIME';
-  } else if (p.includes('cyber') || p.includes('neon') || p.includes('matrix') || p.includes('future') || p.includes('futuristisch')) {
-    bgColor = '#0d0221';
-    accentColor = '#00f6ff';
-    secondaryColor = '#ff0055';
-    textColor = '#ffffff';
-    style = 'cyberpunk';
-    particleEffect = p.includes('matrix') ? 'matrix' : 'sparks';
-    soundType = 'digital_beep';
-    discStyle = 'neon_rings';
-    handStyle = 'laser_beam';
-    fontFamily = 'monospace';
-    customText = 'NEON CYBER';
-  } else if (p.includes('goud') || p.includes('steampunk') || p.includes('koper') || p.includes('tandwiel') || p.includes('hout')) {
-    bgColor = '#1c1917';
-    accentColor = '#f59e0b';
-    secondaryColor = '#78350f';
-    textColor = '#fef3c7';
-    style = 'steampunk';
-    particleEffect = 'steam';
-    discStyle = 'brass_gears';
-    handStyle = 'ornate_brass';
-    soundType = 'gear_click';
-    fontFamily = 'serif';
-    customText = 'CHRONO GEAR';
-  } else if (p.includes('ruimte') || p.includes('kosm') || p.includes('ster') || p.includes('galaxy')) {
-    bgColor = '#030712';
-    accentColor = '#a855f7';
-    secondaryColor = '#38bdf8';
-    textColor = '#f3e8ff';
-    style = 'space';
-    particleEffect = 'stars';
-    discStyle = 'concentric';
-    handStyle = 'glowing_arrow';
-    customText = 'COSMIC TIME';
-  } else if (p.includes('groen') || p.includes('natuur') || p.includes('vuurvlieg') || p.includes('bos')) {
-    bgColor = '#052e16';
-    accentColor = '#22c55e';
-    secondaryColor = '#15803d';
-    textColor = '#dcfce7';
-    style = 'nature';
-    particleEffect = 'fireflies';
-    discStyle = 'clean';
-    customText = 'NATURA';
-  } else if (p.includes('rood') || p.includes('vuur') || p.includes('lava') || p.includes('vlam')) {
-    bgColor = '#450a0a';
-    accentColor = '#ef4444';
-    secondaryColor = '#f97316';
-    textColor = '#fef2f2';
-    style = 'neon';
-    particleEffect = 'sparks';
-    customText = 'MAGMA CHRONO';
-  } else if (p.includes('paars') || p.includes('magisch') || p.includes('geheim')) {
-    bgColor = '#3b0764';
-    accentColor = '#c084fc';
-    secondaryColor = '#f43f5e';
-    textColor = '#faf5ff';
-    style = 'art_deco';
-    particleEffect = 'stars';
-    customText = 'MAGIC CLOCK';
-  } else if (p.includes('zen') || p.includes('japan') || p.includes('minimal') || p.includes('wit')) {
-    bgColor = '#f8fafc';
-    accentColor = '#0f172a';
-    secondaryColor = '#64748b';
-    textColor = '#0f172a';
-    style = 'minimal';
-    particleEffect = 'sakura';
-    discStyle = 'clean';
-    handStyle = 'needle';
-    fontFamily = 'sans-serif';
-    glowEffect = false;
-    customText = 'ZEN CHRONO';
-  }
-
-  const cleanWords = prompt.trim().replace(/[^\w\s]/gi, '').split(/\s+/).slice(0, 4).join(' ');
-  const name = cleanWords ? cleanWords.charAt(0).toUpperCase() + cleanWords.slice(1) + ' Klok' : 'Aangepaste AI Klok';
-  const description = `Uniek op maat gemaakt klokontwerp gebaseerd op "${prompt}".`;
-
-  return {
-    name,
-    description,
-    style,
-    bgColor,
-    accentColor,
-    secondaryColor,
-    textColor,
-    fontFamily,
-    showSeconds,
-    glowEffect,
-    particleEffect,
-    discStyle,
-    handStyle,
-    soundType,
-    customText
-  };
+function trimmed(value: unknown, max: number): string {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
 // API: Generate Custom Clock via Gemini AI
-app.post('/api/generate-clock', async (req, res) => {
-  const { prompt, currentConfig } = req.body;
+app.post('/api/generate-clock', generateLimiter, async (req, res) => {
+  const { prompt, currentConfig } = req.body ?? {};
 
   if (!prompt || typeof prompt !== 'string') {
     return res.status(400).json({ error: 'Prompt is vereist.' });
@@ -338,13 +143,20 @@ Verzoek van gebruiker voor aanpassing: "${prompt}"`
     });
 
     const resultText = response.text || '{}';
-    const clockConfig = JSON.parse(resultText);
+    const raw = JSON.parse(resultText);
+
+    // Never trust model output blindly: coerce every field to the shared contract.
+    const clockConfig: ClockConfig & { name: string; description: string } = {
+      ...sanitizeClockConfig(raw),
+      name: trimmed(raw?.name, 80) || 'Aangepaste AI Klok',
+      description: trimmed(raw?.description, 200) || 'Aangepast klokontwerp.'
+    };
 
     return res.json({
       success: true,
       clockConfig
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log('Generating clock design using smart local design engine.');
     const fallbackConfig = generateFallbackClockConfig(prompt, currentConfig);
     return res.json({
@@ -356,39 +168,33 @@ Verzoek van gebruiker voor aanpassing: "${prompt}"`
 });
 
 // API: Get Community Shared Clocks
-app.get('/api/community-clocks', (req, res) => {
-  res.json({ clocks: communityClocksStore });
+app.get('/api/community-clocks', apiLimiter, (req, res) => {
+  res.json({ clocks: store.list() });
 });
 
 // API: Share / Publish a new clock to community
-app.post('/api/community-clocks', (req, res) => {
-  const { name, description, author, category, config } = req.body;
-  if (!name || !config) {
+app.post('/api/community-clocks', apiLimiter, (req, res) => {
+  const input = sanitizeCommunityClockInput(req.body);
+  if (!input) {
     return res.status(400).json({ error: 'Naam en klokinstellingen zijn verplicht.' });
   }
 
-  const newClock = {
-    id: 'comm-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-    name,
-    description: description || 'Aangepast klokontwerp gemaakt door gebruiker.',
-    author: author || 'Anonieme Klokkenmaker',
-    category: category || 'Custom AI',
-    likes: 1,
-    createdAt: new Date().toISOString(),
-    config
-  };
+  const newClock = store.add({
+    name: input.name,
+    description: input.description || 'Aangepast klokontwerp gemaakt door gebruiker.',
+    author: input.author || 'Anonieme Klokkenmaker',
+    category: input.category || 'Custom AI',
+    config: input.config
+  });
 
-  communityClocksStore.unshift(newClock);
   res.json({ success: true, clock: newClock });
 });
 
 // API: Like / Upvote a community clock
-app.post('/api/community-clocks/:id/like', (req, res) => {
-  const { id } = req.params;
-  const clock = communityClocksStore.find((c) => c.id === id);
-  if (clock) {
-    clock.likes += 1;
-    return res.json({ success: true, likes: clock.likes });
+app.post('/api/community-clocks/:id/like', apiLimiter, (req, res) => {
+  const likes = store.like(req.params.id);
+  if (likes !== null) {
+    return res.json({ success: true, likes });
   }
   res.status(404).json({ error: 'Klok niet gevonden.' });
 });
@@ -430,16 +236,6 @@ async function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server gestart op http://localhost:${PORT}`);
   });
-}
-
-/**
- * Replaces the <title>…</title> element with the localized variant.
- * Unknown/absent language values leave the HTML unchanged (static nl default).
- */
-function injectLocalizedTitle(html: string, langValue: string): string {
-  const title = localizedPageTitle(langValue);
-  if (!title) return html;
-  return html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
 }
 
 startServer();
