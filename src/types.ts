@@ -78,3 +78,88 @@ export interface PomodoroState {
   breakDuration: number;
   sessionsCompleted: number;
 }
+
+export const ALLOWED_STYLES = [
+  'cyberpunk',
+  'steampunk',
+  'minimal',
+  'neon',
+  'nature',
+  'space',
+  'retro_nixie',
+  'art_deco',
+  'fluid',
+  'celestial',
+  'retro_terminal',
+  'mechanical_amber'
+] as const;
+
+export const ALLOWED_FONT_FAMILIES = ['sans-serif', 'serif', 'monospace', 'cursive'] as const;
+
+export const ALLOWED_PARTICLE_EFFECTS = [
+  'none',
+  'matrix',
+  'stars',
+  'steam',
+  'sakura',
+  'bubbles',
+  'fireflies',
+  'sparks',
+  'aurora',
+  'rain_drops'
+] as const;
+
+export const ALLOWED_DISC_STYLES = [
+  'clean',
+  'neon_rings',
+  'brass_gears',
+  'radar',
+  'concentric',
+  'minimal_dots'
+] as const;
+
+export const ALLOWED_HAND_STYLES = [
+  'needle',
+  'laser_beam',
+  'ornate_brass',
+  'thick_modern',
+  'glowing_arrow',
+  'dot_markers'
+] as const;
+
+export const ALLOWED_SOUND_TYPES = [
+  'none',
+  'soft_tick',
+  'digital_beep',
+  'gear_click',
+  'water_drop',
+  'space_hum',
+  'split_flap',
+  'oscilloscope_blip'
+] as const;
+
+export const ALLOWED_AMBIENT_SOUNDS: AmbientSoundType[] = [
+  'none',
+  'rain',
+  'synth432',
+  'brown_noise',
+  'forest',
+  'cosmic_hum'
+];
+
+export const ALLOWED_CHIME_SOUNDS: ChimeSoundType[] = [
+  'none',
+  'westminster',
+  'singing_bowl',
+  'grandfather',
+  'cuckoo'
+];
+
+export const ALLOWED_CLOCK_TYPE_CATEGORIES = [
+  'Roterende Schijven',
+  'Binaire Klok',
+  'Knikkerbaan',
+  'Kleurenpalet',
+  'Woordklok',
+  'Custom AI Design'
+] as const;
